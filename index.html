@@ -20,7 +20,7 @@
           </button>
         </div>
       </header>
-      <section class="workspace" aria-label="Área de trabalho">
+      <section class="workspace output-collapsed" aria-label="Área de trabalho">
         <section class="editor-pane" aria-label="Editor TypeScript">
           <header class="pane-header">
             <span class="file-label"><b>TS</b> main.ts</span
@@ -51,12 +51,24 @@
               </button>
             </div>
             <span id="run-status" role="status">Pronto</span>
-            <button id="clear" class="quiet-button small-button" title="Limpar console">
+            <button id="clear" class="quiet-button small-button" title="Limpar console" hidden>
               Limpar
             </button>
             <button id="copy-js" class="quiet-button small-button" hidden>Copiar JS</button>
+            <button
+              id="toggle-output"
+              class="quiet-button small-button"
+              aria-label="Mostrar painel"
+              title="Mostrar painel"
+              aria-expanded="false"
+              aria-controls="console-panel js-panel"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6 15 6-6 6 6" />
+              </svg>
+            </button>
           </header>
-          <div id="console-panel" role="tabpanel" aria-labelledby="console-tab">
+          <div id="console-panel" role="tabpanel" aria-labelledby="console-tab" hidden>
             <div id="console" role="log" aria-label="Logs e erros">
               <p class="empty-state">
                 Seu resultado aparece aqui.<span>Use Run ou Shift + Enter para executar.</span>

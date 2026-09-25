@@ -29,6 +29,14 @@ const element = (id: string): HTMLElement => {
   return node;
 };
 const storageKey = 'typescript-pad:source';
+const outputPreferenceKey = 'typescript-pad:output-expanded';
+let outputExpanded = false;
+try {
+  outputExpanded = localStorage.getItem(outputPreferenceKey) === 'true';
+} catch {
+  // Panel visibility still works when local storage is unavailable.
+}
+let selectedPanel: 'console' | 'js' = 'console';
 const initialSource = `// Um espaço para pensar em TypeScript.
 const numeros: number[] = [1, 2, 3, 4];
 
@@ -115,16 +123,35 @@ const appendLog = (level: LogLevel, text: string, issue?: CodeIssue) => {
   if (nearBottom) consolePanel.scrollTop = consolePanel.scrollHeight;
 };
 
-const selectPanel = (panel: 'console' | 'js') => {
+const renderOutput = () => {
+  document.querySelector('.workspace')?.classList.toggle('output-collapsed', !outputExpanded);
+  const toggle = element('toggle-output');
+  toggle.setAttribute('aria-expanded', String(outputExpanded));
+  toggle.title = outputExpanded ? 'Recolher painel' : 'Mostrar painel';
+  toggle.setAttribute('aria-label', toggle.title);
   for (const name of ['console', 'js'] as const) {
-    element(`${name}-panel`).hidden = name !== panel;
+    element(`${name}-panel`).hidden = !outputExpanded || name !== selectedPanel;
     const tab = element(`${name}-tab`);
-    tab.setAttribute('aria-selected', String(name === panel));
-    tab.tabIndex = name === panel ? 0 : -1;
+    tab.setAttribute('aria-selected', String(name === selectedPanel));
+    tab.tabIndex = name === selectedPanel ? 0 : -1;
   }
-  element('clear').hidden = panel !== 'console';
-  element('copy-js').hidden = panel !== 'js';
-  if (panel === 'js') javascriptView.requestMeasure();
+  element('clear').hidden = !outputExpanded || selectedPanel !== 'console';
+  element('copy-js').hidden = !outputExpanded || selectedPanel !== 'js';
+  editor.requestMeasure();
+  if (outputExpanded && selectedPanel === 'js') javascriptView.requestMeasure();
+};
+const setOutputExpanded = (expanded: boolean) => {
+  outputExpanded = expanded;
+  renderOutput();
+  try {
+    localStorage.setItem(outputPreferenceKey, String(expanded));
+  } catch {
+    // Keep the user's choice for this session even if it cannot be persisted.
+  }
+};
+const selectPanel = (panel: 'console' | 'js') => {
+  selectedPanel = panel;
+  renderOutput();
 };
 
 const run = () => {
@@ -321,13 +348,21 @@ const javascriptView = new EditorView({
   ],
 });
 const toolbar = setupKeyboardToolbar(element('keyboard-toolbar'), editor, runOrStop);
+renderOutput();
+element('toggle-output').addEventListener('pointerdown', (event) => {
+  if (editor.hasFocus) event.preventDefault();
+});
+element('toggle-output').addEventListener('click', () => setOutputExpanded(!outputExpanded));
 if (!storageAvailable) saveStatus.textContent = 'Armazenamento indisponível — copie seu código';
 runButton.addEventListener('click', runOrStop);
 stopButton.addEventListener('click', () => stopExecution());
 element('clear').addEventListener('click', clearConsole);
 for (const name of ['console', 'js'] as const) {
   const tab = element(`${name}-tab`);
-  tab.addEventListener('click', () => selectPanel(name));
+  tab.addEventListener('click', () => {
+    selectPanel(name);
+    setOutputExpanded(true);
+  });
   tab.addEventListener('keydown', (event) => {
     if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
       event.preventDefault();
@@ -340,6 +375,7 @@ for (const name of ['console', 'js'] as const) {
               ? 'js'
               : 'console';
       selectPanel(next);
+      setOutputExpanded(true);
       element(`${next}-tab`).focus();
     }
   });

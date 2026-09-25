@@ -109,6 +109,29 @@ button:active:not(:disabled) {
   display: grid;
   grid-template-rows: minmax(0, 1fr) minmax(130px, 32%);
 }
+.workspace.output-collapsed {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+#toggle-output {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+}
+#toggle-output svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#toggle-output[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
 .editor-pane,
 .output-pane {
   min-height: 0;
