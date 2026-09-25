@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <title>TypeScript Pad</title>
+  </head>
+  <body>
+    <main id="app">
+      <header class="app-header">
+        <div class="brand">
+          <img src="/icon.svg" alt="" /><span>TypeScript <strong>Pad</strong></span>
+        </div>
+        <div class="header-actions">
+          <button id="copy" class="quiet-button" title="Copiar código TypeScript">Copiar</button>
+          <button id="run" class="run-button" title="Executar código (Shift + Enter)">
+            <span aria-hidden="true">▷</span> Run
+          </button>
+        </div>
+      </header>
+      <section class="workspace" aria-label="Área de trabalho">
+        <section class="editor-pane" aria-label="Editor TypeScript">
+          <header class="pane-header">
+            <span class="file-label"><b>TS</b> main.ts</span
+            ><span id="save-status" role="status">Salvo no dispositivo</span>
+          </header>
+          <div id="editor"></div>
+        </section>
+        <section class="output-pane" aria-label="Resultado">
+          <header class="pane-header output-header">
+            <div class="output-tabs" role="tablist" aria-label="Resultado da execução">
+              <button
+                id="console-tab"
+                role="tab"
+                aria-selected="true"
+                aria-controls="console-panel"
+                tabindex="0"
+              >
+                Console <span id="log-count">0</span>
+              </button>
+              <button
+                id="js-tab"
+                role="tab"
+                aria-selected="false"
+                aria-controls="js-panel"
+                tabindex="-1"
+              >
+                JavaScript
+              </button>
+            </div>
+            <span id="run-status" role="status">Pronto</span>
+            <button id="clear" class="quiet-button small-button" title="Limpar console">
+              Limpar
+            </button>
+            <button id="copy-js" class="quiet-button small-button" hidden>Copiar JS</button>
+          </header>
+          <div id="console-panel" role="tabpanel" aria-labelledby="console-tab">
+            <div id="console" role="log" aria-label="Logs e erros">
+              <p class="empty-state">
+                Seu resultado aparece aqui.<span>Use Run ou Shift + Enter para executar.</span>
+              </p>
+            </div>
+          </div>
+          <div id="js-panel" role="tabpanel" aria-labelledby="js-tab" hidden>
+            <div id="javascript"></div>
+          </div>
+        </section>
+      </section>
+      <footer class="status-bar">
+        <span id="compiler-version">TypeScript 6.0.3</span
+        ><span id="cursor-position">Ln 1, Col 1</span><span>Offline</span>
+      </footer>
+      <div id="keyboard-toolbar" role="toolbar" aria-label="Atalhos de código" hidden></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
