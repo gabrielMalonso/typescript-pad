@@ -8,7 +8,7 @@ bibliotecas de tipos e editor estão incluídos no APK e funcionam offline.
 ## O que tem
 
 - GitHub Dark com as cores personalizadas de Gabriel.
-- JetBrains Mono incluída no APK: 14 px e altura de linha 1,20 no editor, JavaScript e console.
+- JetBrains Mono incluída no APK: 14 px e altura de linha 1,40 no editor, JavaScript e console.
 - Run / Parar, atalho Shift+Enter, copiar TypeScript e JavaScript compilado.
 - Painel Console/JavaScript recolhível pela seta à direita. Começa fechado e lembra
   a última escolha; Run não o abre automaticamente. Tocar em uma aba também o abre.

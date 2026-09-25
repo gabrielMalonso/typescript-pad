@@ -11,7 +11,7 @@ export const githubDark = [
       '&': { height: '100%', color: '#e6edf3', backgroundColor: '#0d1117', fontSize: '14px' },
       '.cm-scroller': {
         fontFamily: '"JetBrains Mono", monospace',
-        lineHeight: '1.2',
+        lineHeight: '1.4',
         overflow: 'auto',
       },
       '.cm-content': { caretColor: '#2f81f7', padding: '12px 0 40px' },
