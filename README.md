@@ -1,43 +1,42 @@
-# TypeScript Pad — Playground TypeScript
+# TypeScript Pad — TypeScript Playground
 
-Um playground open source e offline para escrever, executar e experimentar
-**TypeScript no Android**. Editor, console e visualização do JavaScript compilado
-em uma interface simples, pensada para usar com teclado virtual em tablets.
+An open-source, offline playground for writing, running, and experimenting with
+**TypeScript on Android**. An editor, console, and compiled JavaScript viewer
+in a simple interface designed for on-screen keyboards on tablets.
 
-Sem anúncios ou necessidade de conta. Construído com Capacitor 8, CodeMirror 6
-e **TypeScript 6.0.3**, com editor, compilador e bibliotecas de tipos incluídos no APK.
+No ads or account required. Built with Capacitor 8, CodeMirror 6, and
+**TypeScript 6.0.3**, with the editor, compiler, and type libraries bundled in the APK.
 
-## O que tem
+## Features
 
-- Tema baseado no GitHub Dark e fonte JetBrains Mono.
-- Run / Parar, atalho Shift+Enter, copiar TypeScript e JavaScript compilado.
-- Painel Console/JavaScript recolhível, com preferência de visibilidade salva.
-- Erros de tipo e sintaxe com indicação no editor; toque no erro para ir à posição.
-- Logs de arrays, objetos, Map, Set, bigint, erros e valores circulares.
-- Rascunho salvo automaticamente no dispositivo.
-- Barra paginável de símbolos acima do teclado Android, com Tab, Shift+Tab
-  e Play/Parar sempre acessíveis.
+- GitHub Dark-based theme and JetBrains Mono font.
+- Run / Stop, Shift+Enter shortcut, and copy actions for TypeScript and compiled JavaScript.
+- Collapsible Console/JavaScript panel that remembers its visibility setting.
+- Type and syntax errors highlighted in the editor; tap an error to jump to its location.
+- Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
+- Draft automatically saved on the device.
+- Swipeable symbol toolbar above the Android keyboard, with Tab, Shift+Tab,
+  and Run/Stop always accessible.
 
-## Limites intencionais
+## Scope and limitations
 
-Um único arquivo TypeScript, em modo strict. Erros de tipo impedem a execução.
-O console é uma saída de logs, não um terminal de comandos. Não há Node.js,
-pacotes npm, import/export, DOM ou gerenciador de arquivos.
+One TypeScript file at a time, with strict mode enabled. Type errors prevent execution.
+The console displays logs; it is not a command-line terminal. Node.js, npm packages,
+import/export, the DOM, and file management are not supported.
 
-O código roda em um Web Worker descartável, separado da interface e sem acesso
-ao DOM ou à ponte nativa Capacitor. Isso não deve ser tratado como um ambiente
-de segurança para código hostil. Há suporte a Promises, top-level await, timers
-e APIs de Web Worker. Cada execução tem no máximo 30 segundos, incluindo tarefas
-assíncronas; a próxima execução, Parar ou colocar o app em segundo plano encerra
-o worker anterior. Até 500 logs são exibidos por execução.
+Code runs in a disposable Web Worker, separate from the interface and without access
+to the DOM or the Capacitor native bridge. This should not be treated as a secure
+sandbox for hostile code. Promises, top-level await, timers, and Web Worker APIs
+are supported. Each run is limited to 30 seconds, including asynchronous tasks.
+Starting another run, pressing Stop, or moving the app to the background terminates
+the previous worker. Up to 500 log entries are displayed per run.
 
-O rascunho usa o armazenamento local da WebView. Atualizar mantendo o mesmo appId
-e assinatura preserva os dados; desinstalar ou limpar os dados do app apaga o
-rascunho.
+Drafts use the WebView's local storage. Updates that keep the same app ID and signing
+key preserve the draft; uninstalling the app or clearing its data deletes it.
 
-## Desenvolvimento
+## Development
 
-Node.js 22.12+ (recomendado: 24), JDK 21 e Android SDK 36.
+Requires Node.js 22.12+ (recommended: 24), JDK 21, and Android SDK 36.
 
 ```sh
 npm ci
@@ -46,13 +45,15 @@ npm test
 npm run build
 ```
 
-Com `JAVA_HOME` apontando para o JDK 21 e `ANDROID_HOME` para o Android SDK:
+With `JAVA_HOME` pointing to JDK 21 and `ANDROID_HOME` to the Android SDK:
 
 ```sh
 npm run android:build
 ```
 
-APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
+APK output: `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+Replace `SERIAL` with your device's serial number:
 
 ```sh
 adb devices -l
@@ -60,31 +61,31 @@ adb -s SERIAL install -r android/app/build/outputs/apk/debug/app-debug.apk
 adb -s SERIAL shell am start -n com.gabrielalonso.typescriptpad/.MainActivity
 ```
 
-## Estrutura
+## Project structure
 
-- `src/main.ts`: interface, rascunho, logs e ciclo de execução.
-- `src/compiler.ts` / `compiler.worker.ts`: análise de tipos e compilação offline.
-- `src/runner.worker.ts`: execução isolada da interface e captura do console.
-- `src/keyboard-toolbar.ts`: barra paginável e integração com o IME nativo.
-- `src/theme.ts`: cores do editor.
-- `android/`: aplicativo Capacitor e ícones vetoriais próprios.
+- `src/main.ts`: interface, draft persistence, logs, and execution lifecycle.
+- `src/compiler.ts` / `compiler.worker.ts`: type checking and offline compilation.
+- `src/runner.worker.ts`: code execution in a separate worker and console capture.
+- `src/keyboard-toolbar.ts`: swipeable toolbar and native keyboard integration.
+- `src/theme.ts`: editor colors.
+- `android/`: Capacitor Android app and custom vector icons.
 
-O compilador é carregado apenas na primeira execução. Ele é a maior parte do APK;
-não é enviado ao computador ou baixado de uma CDN para executar o código.
+The compiler loads on the first run and accounts for most of the APK size.
+Compilation happens on the device, without a remote service or CDN downloads.
 
-## Verificação
+## Verification
 
-`npm test` cobre compilação, bibliotecas padrão offline, erros de tipo e sintaxe,
-escopo do arquivo, await, limites de módulos e representação dos logs. A interface
-também deve ser verificada no navegador e no tablet, especialmente seleção de
-texto, teclado virtual, swipe e rotação.
+`npm test` covers compilation, offline standard libraries, type and syntax errors,
+file scope, await, module restrictions, and log formatting. The interface should
+also be checked in a browser and on a tablet, especially text selection, the
+on-screen keyboard, swiping, and rotation.
 
-O `npm audit --omit=dev` da versão inicial não apresenta vulnerabilidades.
-O audit completo aponta avisos transitivos em `uuid/xcode` da CLI Capacitor,
-ferramentas de desenvolvimento iOS que não entram no APK Android.
+At the initial release, `npm audit --omit=dev` reported no vulnerabilities.
+The full audit reported transitive advisories in the Capacitor CLI's `uuid/xcode`
+dependencies, which are iOS development tools and are not included in the Android APK.
 
-## Licença
+## License
 
-Código aberto sob a [licença MIT](LICENSE).
-As adaptações reaproveitadas do LiveCodes e a licença da fonte JetBrains Mono
-estão documentadas em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Open source under the [MIT License](LICENSE).
+LiveCodes adaptations and the JetBrains Mono font license are documented in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
