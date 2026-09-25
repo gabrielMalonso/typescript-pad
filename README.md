@@ -87,5 +87,8 @@ O `npm audit --omit=dev` da versão inicial não apresenta vulnerabilidades.
 O audit completo aponta avisos transitivos em `uuid/xcode` da CLI Capacitor,
 ferramentas de desenvolvimento iOS que não entram no APK Android.
 
-As adaptações reaproveitadas do LiveCodes estão documentadas em
-`THIRD_PARTY_NOTICES.md`.
+## Licença
+
+Código aberto sob a [licença MIT](LICENSE).
+As adaptações reaproveitadas do LiveCodes e a licença da fonte JetBrains Mono
+estão documentadas em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
