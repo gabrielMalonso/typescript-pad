@@ -1,7 +1,7 @@
 # Third-party notices
 
-The coding keyboard toolbar layout and personalized CodeMirror theme are adapted
-from Gabriel’s LiveCodes fork (https://github.com/gabrielMalonso/livecodes),
+The coding keyboard toolbar layout and CodeMirror theme are adapted
+from a LiveCodes fork (https://github.com/gabrielMalonso/livecodes),
 originally based on LiveCodes (https://github.com/live-codes/livecodes).
 
 MIT License

@@ -1,25 +1,22 @@
-# TypeScript Pad
+# TypeScript Pad — Playground TypeScript
 
-Playground pessoal para Android: um editor, um console e execução manual.
-Projeto independente do LiveCodes, com Capacitor 8, CodeMirror 6 e **TypeScript 6.0.3**.
-Sem anúncios, conta, servidor ou downloads em tempo de execução. O compilador,
-bibliotecas de tipos e editor estão incluídos no APK e funcionam offline.
+Um playground open source e offline para escrever, executar e experimentar
+**TypeScript no Android**. Editor, console e visualização do JavaScript compilado
+em uma interface simples, pensada para usar com teclado virtual em tablets.
+
+Sem anúncios ou necessidade de conta. Construído com Capacitor 8, CodeMirror 6
+e **TypeScript 6.0.3**, com editor, compilador e bibliotecas de tipos incluídos no APK.
 
 ## O que tem
 
-- GitHub Dark com as cores personalizadas de Gabriel.
-- JetBrains Mono incluída no APK: 14 px e altura de linha 1,40 no editor, JavaScript e console.
+- Tema baseado no GitHub Dark e fonte JetBrains Mono.
 - Run / Parar, atalho Shift+Enter, copiar TypeScript e JavaScript compilado.
-- Painel Console/JavaScript recolhível pela seta à direita. Começa fechado e lembra
-  a última escolha; Run não o abre automaticamente. Tocar em uma aba também o abre.
+- Painel Console/JavaScript recolhível, com preferência de visibilidade salva.
 - Erros de tipo e sintaxe com indicação no editor; toque no erro para ir à posição.
 - Logs de arrays, objetos, Map, Set, bigint, erros e valores circulares.
-- Rascunho salvo automaticamente no dispositivo, inclusive quando o código está vazio.
-- Barra acima do teclado Android, com Tab, Shift+Tab e Play/Parar fixos.
-- Primeira página: `=`, `=>`, `<`, `>`, aspas duplas, crase, `:`, `;`.
-- Segunda página: `!`, `&`, `|`, `{`, `}`, `[`, `]`.
-
-As páginas se adaptam à largura disponível. Os parênteses ficam no teclado Samsung.
+- Rascunho salvo automaticamente no dispositivo.
+- Barra paginável de símbolos acima do teclado Android, com Tab, Shift+Tab
+  e Play/Parar sempre acessíveis.
 
 ## Limites intencionais
 
@@ -36,11 +33,11 @@ o worker anterior. Até 500 logs são exibidos por execução.
 
 O rascunho usa o armazenamento local da WebView. Atualizar mantendo o mesmo appId
 e assinatura preserva os dados; desinstalar ou limpar os dados do app apaga o
-rascunho. O LiveCodes instalado usa outro appId e permanece independente.
+rascunho.
 
 ## Desenvolvimento
 
-Node.js 22.12+ (usado: 24), JDK 21 e Android SDK 36.
+Node.js 22.12+ (recomendado: 24), JDK 21 e Android SDK 36.
 
 ```sh
 npm ci
@@ -49,11 +46,10 @@ npm test
 npm run build
 ```
 
-Para compilar o APK neste Mac:
+Com `JAVA_HOME` apontando para o JDK 21 e `ANDROID_HOME` para o Android SDK:
 
 ```sh
-JAVA_HOME=/opt/homebrew/opt/openjdk@21 \
-ANDROID_HOME="$HOME/Library/Android/sdk" npm run android:build
+npm run android:build
 ```
 
 APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
@@ -81,7 +77,7 @@ não é enviado ao computador ou baixado de uma CDN para executar o código.
 `npm test` cobre compilação, bibliotecas padrão offline, erros de tipo e sintaxe,
 escopo do arquivo, await, limites de módulos e representação dos logs. A interface
 também deve ser verificada no navegador e no tablet, especialmente seleção de
-texto, teclado Samsung, swipe e rotação.
+texto, teclado virtual, swipe e rotação.
 
 O `npm audit --omit=dev` da versão inicial não apresenta vulnerabilidades.
 O audit completo aponta avisos transitivos em `uuid/xcode` da CLI Capacitor,
