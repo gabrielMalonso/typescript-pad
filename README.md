@@ -1,4 +1,4 @@
-# TypeScript Pad — TypeScript Playground
+# TypeScript Pad — TypeScript
 
 An open-source, offline playground for writing, running, and experimenting with
 **TypeScript on Android**. An editor, console, and compiled JavaScript viewer
