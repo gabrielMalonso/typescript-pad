@@ -1,15 +1,17 @@
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-400-italic.css';
 
 // Gabriel's GitHub Dark token colors, kept identical to the customized LiveCodes editor.
 export const githubDark = [
   EditorView.theme(
     {
-      '&': { height: '100%', color: '#e6edf3', backgroundColor: '#0d1117', fontSize: '16px' },
+      '&': { height: '100%', color: '#e6edf3', backgroundColor: '#0d1117', fontSize: '14px' },
       '.cm-scroller': {
-        fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
-        lineHeight: '1.65',
+        fontFamily: '"JetBrains Mono", monospace',
+        lineHeight: '1.2',
         overflow: 'auto',
       },
       '.cm-content': { caretColor: '#2f81f7', padding: '12px 0 40px' },

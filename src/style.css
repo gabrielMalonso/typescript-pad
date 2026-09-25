@@ -227,9 +227,7 @@ button:active:not(:disabled) {
 #console {
   padding: 8px 20px;
   font:
-    14px/1.6 'SFMono-Regular',
-    Consolas,
-    'Liberation Mono',
+    14px/1.2 'JetBrains Mono',
     monospace;
 }
 .empty-state {

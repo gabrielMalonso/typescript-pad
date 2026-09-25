@@ -25,3 +25,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## JetBrains Mono
+
+Copyright 2020 The JetBrains Mono Project Authors. Distributed through
+`@fontsource/jetbrains-mono` under the SIL Open Font License 1.1.
+The full license is included in `public/licenses/jetbrains-mono.txt` and the APK.
