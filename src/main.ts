@@ -295,7 +295,7 @@ const editor = new EditorView({
       autocompletion(),
       highlightActiveLine(),
       highlightSelectionMatches(),
-      indentUnit.of('  '),
+      indentUnit.of('    '),
       githubDark,
       EditorView.contentAttributes.of({
         'aria-label': 'Código TypeScript',
