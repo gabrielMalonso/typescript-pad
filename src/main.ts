@@ -20,7 +20,9 @@ import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import { setDiagnostics } from '@codemirror/lint';
 import { githubDark } from './theme';
 import { setupKeyboardToolbar } from './keyboard-toolbar';
-import type { CodeIssue, CompilerReply, LogLevel, RunnerReply } from './protocol';
+import { liveDiagnostics } from './live-diagnostics';
+import { toDiagnostics } from './diagnostics-client';
+import type { CodeIssue, CompilerReply, CompilerRequest, LogLevel, RunnerReply } from './protocol';
 import './style.css';
 
 const element = (id: string): HTMLElement => {
@@ -158,7 +160,6 @@ const run = () => {
   stopExecution('Compilando…');
   clearConsole();
   selectPanel('console');
-  editor.dispatch(setDiagnostics(editor.state, []));
   lastJavascript = '';
   javascriptView.dispatch({
     changes: { from: 0, to: javascriptView.state.doc.length, insert: '' },
@@ -186,17 +187,7 @@ const run = () => {
     }
     const result = event.data.result;
     if (!result.ok) {
-      editor.dispatch(
-        setDiagnostics(
-          editor.state,
-          result.issues.map((issue) => ({
-            from: Math.min(issue.from, source.length),
-            to: Math.min(issue.to, source.length),
-            severity: 'error',
-            message: issue.message,
-          })),
-        ),
-      );
+      editor.dispatch(setDiagnostics(editor.state, toDiagnostics(result.issues)));
       for (const issue of result.issues)
         appendLog(
           'error',
@@ -257,7 +248,7 @@ const run = () => {
       }
     }, 30_000);
   };
-  compiler.postMessage({ id, source });
+  compiler.postMessage({ id, source, kind: 'compile' } satisfies CompilerRequest);
   deadline = window.setTimeout(() => {
     appendLog('error', 'A compilação excedeu 30 segundos. Tente reduzir o código.');
     stopExecution('Limite de compilação');
@@ -297,6 +288,7 @@ const editor = new EditorView({
       highlightSelectionMatches(),
       indentUnit.of('    '),
       githubDark,
+      liveDiagnostics,
       EditorView.contentAttributes.of({
         'aria-label': 'Código TypeScript',
         autocapitalize: 'off',
@@ -323,8 +315,6 @@ const editor = new EditorView({
           saveStatus.textContent = 'Salvando…';
           window.clearTimeout(saveTimer);
           saveTimer = window.setTimeout(save, 250);
-          // Diagnostics belong to the source that was run, not the next edited draft.
-          queueMicrotask(() => editor.dispatch(setDiagnostics(editor.state, [])));
         }
         if (update.selectionSet || update.docChanged) {
           const cursor = update.state.selection.main.head;

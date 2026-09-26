@@ -30,6 +30,15 @@ export const githubDark = [
       },
       '.cm-activeLineGutter': { backgroundColor: '#6e76811a', color: '#e6edf3' },
       '.cm-tooltip': { backgroundColor: '#161b22', color: '#e6edf3', border: '1px solid #30363d' },
+      '.cm-tooltip-lint, .cm-tapped-diagnostic': {
+        maxWidth: 'min(480px, calc(100vw - 32px))',
+        maxHeight: '180px',
+        overflow: 'auto',
+        whiteSpace: 'pre-wrap',
+        overflowWrap: 'anywhere',
+      },
+      '.cm-tapped-diagnostic': { padding: '8px 12px', borderRadius: '6px' },
+      '.cm-tapped-diagnostic p': { margin: '0', padding: '4px 0' },
       '.cm-tooltip-autocomplete ul li[aria-selected]': {
         backgroundColor: '#1f6feb',
         color: '#fff',

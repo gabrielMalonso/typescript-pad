@@ -12,6 +12,12 @@ export type CompileResult =
   | { ok: false; javascript: null; issues: CodeIssue[] };
 
 export type CompilerReply = { id: number; result: CompileResult } | { id: number; error: string };
+export interface CompilerRequest {
+  id: number;
+  source: string;
+  kind: 'compile' | 'check';
+}
+export type CheckReply = { id: number; issues: CodeIssue[] } | { id: number; error: string };
 export type LogLevel = 'log' | 'info' | 'warn' | 'error';
 export type RunnerReply =
   | { type: 'log'; level: LogLevel; text: string }

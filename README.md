@@ -12,7 +12,9 @@ No ads or account required. Built with Capacitor 8, CodeMirror 6, and
 - GitHub Dark-based theme and JetBrains Mono font.
 - Run / Stop, Shift+Enter shortcut, and copy actions for TypeScript and compiled JavaScript.
 - Collapsible Console/JavaScript panel that remembers its visibility setting.
-- Type and syntax errors highlighted in the editor; tap an error to jump to its location.
+- Type and syntax errors highlighted automatically after a short pause in typing,
+  without running the code. Hover or tap an underline to read the explanation and
+  TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
 - Draft automatically saved on the device.
 - Swipeable symbol toolbar above the Android keyboard, with Tab, Shift+Tab,
@@ -65,12 +67,14 @@ adb -s SERIAL shell am start -n com.gabrielalonso.typescriptpad/.MainActivity
 
 - `src/main.ts`: interface, draft persistence, logs, and execution lifecycle.
 - `src/compiler.ts` / `compiler.worker.ts`: type checking and offline compilation.
+- `src/live-diagnostics.ts` / `diagnostics-client.ts`: live errors, touch explanations,
+  and background checks that keep only the newest queued draft.
 - `src/runner.worker.ts`: code execution in a separate worker and console capture.
 - `src/keyboard-toolbar.ts`: swipeable toolbar and native keyboard integration.
 - `src/theme.ts`: editor colors.
 - `android/`: Capacitor Android app and custom vector icons.
 
-The compiler loads on the first run and accounts for most of the APK size.
+The compiler loads when the editor first checks a draft and accounts for most of the APK size.
 Compilation happens on the device, without a remote service or CDN downloads.
 
 ## Verification

@@ -24,11 +24,10 @@ const options: ts.CompilerOptions = {
   types: [],
 };
 
-export const compile = (source: string): CompileResult => {
+const analyze = (source: string) => {
   // A trailing marker gives each draft its own scope without shifting user positions.
   const moduleSource = `${source}\nexport {};`;
   const file = ts.createSourceFile('main.ts', moduleSource, ts.ScriptTarget.ES2022, true);
-  let javascript = '';
   const host: ts.CompilerHost = {
     getSourceFile: (path) => {
       if (path === 'main.ts') return file;
@@ -43,9 +42,7 @@ export const compile = (source: string): CompileResult => {
       return parsed;
     },
     getDefaultLibFileName: () => 'lib.es2022.d.ts',
-    writeFile: (name, text) => {
-      if (name.endsWith('.js')) javascript = text;
-    },
+    writeFile: () => {},
     getCurrentDirectory: () => '',
     getDirectories: () => [],
     fileExists: (path) => path === 'main.ts' || libraries.has(path.split('/').pop()!),
@@ -86,7 +83,7 @@ export const compile = (source: string): CompileResult => {
       const location = file.getLineAndCharacterOfPosition(from);
       issues.push({
         from,
-        to: node.getEnd(),
+        to: Math.min(node.getEnd(), source.length),
         line: location.line + 1,
         column: location.character + 1,
         code: 0,
@@ -97,19 +94,36 @@ export const compile = (source: string): CompileResult => {
     ts.forEachChild(node, visit);
   };
   visit(file);
+  return { program, issues };
+};
+
+// Checking a draft never emits or executes JavaScript.
+export const check = (source: string): CodeIssue[] => analyze(source).issues;
+
+export const compile = (source: string): CompileResult => {
+  const { program, issues } = analyze(source);
   if (issues.length) return { ok: false, javascript: null, issues };
+  let javascript = '';
   // Treat the scratchpad as a module for type checking (no global-name collisions).
   // Its implicit `export {}` is unnecessary inside the isolated async runner.
-  program.emit(undefined, undefined, undefined, undefined, {
-    after: [
-      (context) => (node) =>
-        ts.isSourceFile(node)
-          ? context.factory.updateSourceFile(
-              node,
-              node.statements.filter((statement) => !ts.isExportDeclaration(statement)),
-            )
-          : node,
-    ],
-  });
+  program.emit(
+    undefined,
+    (name, text) => {
+      if (name.endsWith('.js')) javascript = text;
+    },
+    undefined,
+    undefined,
+    {
+      after: [
+        (context) => (node) =>
+          ts.isSourceFile(node)
+            ? context.factory.updateSourceFile(
+                node,
+                node.statements.filter((statement) => !ts.isExportDeclaration(statement)),
+              )
+            : node,
+      ],
+    },
+  );
   return { ok: true, javascript, issues: [] };
 };

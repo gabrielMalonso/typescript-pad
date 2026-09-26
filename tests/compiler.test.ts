@@ -1,8 +1,39 @@
 import { describe, expect, test } from 'vitest';
-import { compile } from '../src/compiler';
+import { check, compile } from '../src/compiler';
 import { formatValue } from '../src/format-value';
 
 describe('offline TypeScript compiler', () => {
+  test.each([
+    ['console.log("teste";', 1005],
+    ['let escritor = 1; console.log(escrito);', 2552],
+    ['let escritor = "1"; escritor--;', 2356],
+    ['const teste = 1; teste = 2;', 2588],
+    ['let teste: number = 1; teste = "2";', 2322],
+  ])('checks the editor example %s without running it', (source, code) => {
+    const issues = check(source);
+    expect(issues).toEqual(expect.arrayContaining([expect.objectContaining({ code })]));
+    expect(issues).toEqual(compile(source).issues);
+    for (const issue of issues) {
+      expect(issue.from).toBeGreaterThanOrEqual(0);
+      expect(issue.to).toBeLessThanOrEqual(source.length);
+      expect(issue.to).toBeGreaterThanOrEqual(issue.from);
+    }
+  });
+  test('checks successive drafts and never executes user code', () => {
+    expect(check('let teste: number = "2";')).not.toHaveLength(0);
+    expect(check('let teste: number = 2; throw new Error("must not run");')).toEqual([]);
+    expect(check('const teste = 1; teste = 2;')).not.toHaveLength(0);
+    expect(check('')).toEqual([]);
+  });
+  test.each(['import {', 'export {', 'function f(', 'const x =', '// comment']) (
+    'keeps diagnostics inside an unfinished draft: %s', (source) => {
+      for (const issue of check(source)) {
+        expect(issue.from).toBeGreaterThanOrEqual(0);
+        expect(issue.to).toBeLessThanOrEqual(source.length);
+        expect(issue.to).toBeGreaterThanOrEqual(issue.from);
+      }
+    },
+  );
   test('checks standard libraries and removes TypeScript types', () => {
     const result = compile('const values: number[] = [1, 2]; console.log(values.map(n => n * 2));');
     expect(result.ok).toBe(true);
