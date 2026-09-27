@@ -71,8 +71,27 @@ button:active:not(:disabled) {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
+.account { position: relative; }
+.account-button.has-account { width: 40px; padding: 0; border-radius: 50%; color: #79c0ff; background: #161b22; }
+.account-panel { position: absolute; z-index: 30; top: calc(100% + 12px); right: 0; width: min(300px, calc(100vw - 24px)); padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: #161b22; box-shadow: 0 12px 36px #0006; }
+.account-panel strong { font-size: 15px; }
+.account-panel p { font-size: 13px; line-height: 1.6; color: var(--muted); }
+.account-panel button, .account-panel a { display: block; width: 100%; margin-top: 12px; text-align: left; }
+.account-panel a { color: #79c0ff; font-size: 13px; text-decoration: none; }
+.text-button { border: 0; padding: 0; background: transparent; color: var(--muted); font-size: 12px; }
+.needs-attention { color: #f2cc60; }
+dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px; padding: 24px; color: #e6edf3; background: #161b22; }
+dialog::backdrop { background: #0009; }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.dialog-header h2 { margin: 0; font-size: 20px; }
+dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.version-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.version-grid label { display: block; margin-bottom: 10px; font-size: 13px; }
+.version-grid textarea { width: 100%; height: 240px; resize: vertical; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: #e6edf3; background: #0d1117; font: 12px/1.6 'JetBrains Mono', monospace; }
+.version-grid button { margin-top: 12px; }
+@media (max-width: 540px) { .brand img { display: none; } .version-grid { grid-template-columns: 1fr; } .version-grid textarea { height: 150px; } }
 .quiet-button {
   border: 1px solid var(--border);
   background: transparent;
@@ -81,23 +100,50 @@ button:active:not(:disabled) {
   padding: 0 15px;
   font-size: 13px;
 }
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+}
+.icon-button svg,
+.keyboard-format svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-button[data-state='success'] {
+  color: #3fb950;
+  border-color: #3fb95066;
+}
+.icon-button[data-state='error'],
+.danger-button {
+  color: #ff7b72;
+  border-color: #ff7b7240;
+}
 .run-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   border: 1px solid #388bfd66;
   background: #1f6feb;
   border-radius: 7px;
   min-height: 40px;
-  min-width: 86px;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 600;
+  min-width: 40px;
+  width: 40px;
+  padding: 0;
 }
-.run-button span {
-  font-size: 22px;
-  line-height: 1;
+.run-button svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
 }
 #stop {
   color: #ff7b72;
@@ -329,6 +375,9 @@ button.log-row {
   font-size: 26px;
   color: #79c0ff;
 }
+#keyboard-toolbar .keyboard-fixed .keyboard-format {
+  min-width: 44px;
+}
 .keyboard-pager {
   flex: 1;
   min-width: 0;
@@ -393,8 +442,8 @@ button.log-row {
     gap: 6px;
   }
   .header-actions button {
-    padding: 0 10px;
-    min-width: 0;
+    padding: 0;
+    min-width: 40px;
   }
   .pane-header {
     padding: 0 12px;

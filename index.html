@@ -4,27 +4,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0d1117" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <title>TypeScript Pad</title>
   </head>
   <body>
     <main id="app">
       <header class="app-header">
         <div class="brand">
-          <img src="/icon.svg" alt="" /><span>TypeScript <strong>Pad</strong></span>
+          <img src="./icon.svg" alt="" /><span>TypeScript <strong>Pad</strong></span>
         </div>
         <div class="header-actions">
-          <button id="copy" class="quiet-button" title="Copiar código TypeScript">Copiar</button>
-          <button id="run" class="run-button" title="Executar código (Shift + Enter)">
-            <span aria-hidden="true">▷</span> Run
+          <button id="copy" class="quiet-button icon-button" title="Copiar código TypeScript" aria-label="Copiar código TypeScript">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
           </button>
+          <button id="format" class="quiet-button icon-button" title="Formatar código" aria-label="Formatar código">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h10"/><path d="m17 16 2 2 3-4"/></svg>
+          </button>
+          <button id="run" class="run-button icon-button" title="Executar código (Shift + Enter)" aria-label="Executar código">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>
+          </button>
+          <div class="account">
+            <button id="account-button" class="quiet-button icon-button account-button" title="Entrar para sincronizar" aria-label="Entrar para sincronizar" aria-expanded="false" aria-controls="account-panel">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.8-4 3.3-6 7.5-6s6.7 2 7.5 6"/></svg>
+            </button>
+            <section id="account-panel" class="account-panel" aria-label="Sua conta" hidden>
+              <strong id="account-name">Seu código, em qualquer tela</strong>
+              <p id="account-message"></p>
+              <button id="account-action" class="quiet-button">Entrar e sincronizar</button>
+              <button id="sync-retry" class="quiet-button" hidden>Sincronizar agora</button>
+              <a id="account-devices" hidden>Dispositivos conectados</a>
+              <button id="export-recoveries" class="text-button">Exportar cópias de conflitos</button>
+              <a id="course-link" href="/" hidden>← Voltar ao curso</a>
+            </section>
+          </div>
         </div>
       </header>
       <section class="workspace output-collapsed" aria-label="Área de trabalho">
         <section class="editor-pane" aria-label="Editor TypeScript">
           <header class="pane-header">
             <span class="file-label"><b>TS</b> main.ts</span
-            ><span id="save-status" role="status">Salvo no dispositivo</span>
+            ><button id="save-status" class="text-button" aria-live="polite">Salvo no dispositivo</button>
           </header>
           <div id="editor"></div>
         </section>
@@ -82,10 +101,18 @@
       </section>
       <footer class="status-bar">
         <span id="compiler-version">TypeScript 6.0.3</span
-        ><span id="cursor-position">Ln 1, Col 1</span><span>Offline</span>
+        ><span id="cursor-position">Ln 1, Col 1</span><span>Execução local</span>
       </footer>
       <div id="keyboard-toolbar" role="toolbar" aria-label="Atalhos de código" hidden></div>
     </main>
+    <dialog id="conflict-dialog" aria-labelledby="conflict-title">
+      <div class="dialog-header"><h2 id="conflict-title">Qual versão você quer continuar?</h2><button id="close-conflict" class="quiet-button" aria-label="Fechar">×</button></div>
+      <p>O código mudou em outro dispositivo. Guardaremos uma cópia das duas versões antes de continuar.</p>
+      <div class="version-grid">
+        <section><label for="local-version">Neste dispositivo</label><textarea id="local-version" readonly spellcheck="false"></textarea><button id="keep-local" class="quiet-button">Usar deste dispositivo</button></section>
+        <section><label for="cloud-version">Na sua conta</label><textarea id="cloud-version" readonly spellcheck="false"></textarea><button id="keep-cloud" class="quiet-button">Usar da nuvem</button></section>
+      </div>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

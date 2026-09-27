@@ -17,6 +17,7 @@ export const setupKeyboardToolbar = (
   toolbar: HTMLElement,
   editor: EditorView,
   runOrStop: () => void,
+  formatCode: () => void,
 ) => {
   let keyboardVisible = window.typescriptPadKeyboardVisible === true;
   let columns = 0;
@@ -34,6 +35,10 @@ export const setupKeyboardToolbar = (
   fixed.className = 'keyboard-fixed';
   const play = makeKey('▷', runOrStop, 'Executar código');
   play.className = 'keyboard-run';
+  const format = makeKey('', formatCode, 'Formatar código');
+  format.className = 'keyboard-format';
+  format.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h10"/><path d="m17 16 2 2 3-4"/></svg>';
   fixed.append(
     makeKey(
       'Tab',
@@ -51,6 +56,7 @@ export const setupKeyboardToolbar = (
       },
       'Desindentar',
     ),
+    format,
     play,
   );
   const pager = document.createElement('div');

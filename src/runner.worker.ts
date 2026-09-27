@@ -1,6 +1,8 @@
-import { formatValue } from './format-value';
+import type { formatValue as Formatter } from './format-value';
 import type { LogLevel, RunnerReply } from './protocol';
 
+// Self-contained: serialized into a disposable worker inside an opaque-origin iframe.
+export function runWorker(formatValue: typeof Formatter) {
 const send = (message: RunnerReply) => self.postMessage(message);
 let logCount = 0;
 const log = (level: LogLevel, values: unknown[]) => {
@@ -63,3 +65,5 @@ self.onmessage = async (event: MessageEvent<{ javascript: string }>) => {
     reportError(error);
   }
 };
+
+}

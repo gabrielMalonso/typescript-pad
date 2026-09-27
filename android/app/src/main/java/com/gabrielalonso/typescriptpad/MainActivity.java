@@ -15,6 +15,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(PadAccountPlugin.class);
         super.onCreate(savedInstanceState);
         bridge.getWebView().getViewTreeObserver().addOnGlobalLayoutListener(keyboardListener);
         bridge.addWebViewListener(new WebViewListener() {

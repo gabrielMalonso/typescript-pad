@@ -2,7 +2,7 @@ import ts from 'typescript';
 import type { CodeIssue, CompileResult } from './protocol';
 
 // The compiler and standard libraries ship inside the APK; there are no CDN requests.
-const rawLibraries = import.meta.glob<string>('../node_modules/typescript/lib/lib.*.d.ts', {
+const rawLibraries = import.meta.glob<string>('@typescript-libs/lib.*.d.ts', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -10,6 +10,7 @@ const rawLibraries = import.meta.glob<string>('../node_modules/typescript/lib/li
 const libraries = new Map(
   Object.entries(rawLibraries).map(([path, text]) => [path.split('/').pop()!, text]),
 );
+if (!libraries.has('lib.es2022.d.ts')) throw new Error('As bibliotecas TypeScript não foram incluídas no aplicativo.');
 const libraryFiles = new Map<string, ts.SourceFile>();
 
 const options: ts.CompilerOptions = {

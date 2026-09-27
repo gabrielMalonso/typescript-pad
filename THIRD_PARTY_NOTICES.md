@@ -31,3 +31,8 @@ SOFTWARE.
 Copyright 2020 The JetBrains Mono Project Authors. Distributed through
 `@fontsource/jetbrains-mono` under the SIL Open Font License 1.1.
 The full license is included in `public/licenses/jetbrains-mono.txt` and the APK.
+
+## Prettier
+
+Copyright © James Long and contributors. Distributed under the MIT License.
+The source and license are available at https://github.com/prettier/prettier.

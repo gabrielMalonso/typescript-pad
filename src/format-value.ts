@@ -1,9 +1,9 @@
-export const formatValue = (
+export function formatValue(
   value: unknown,
   nested = false,
   seen = new WeakSet<object>(),
   depth = 0,
-): string => {
+): string {
   if (typeof value === 'string') return nested ? JSON.stringify(value) : value;
   if (typeof value === 'bigint') return `${value}n`;
   if (typeof value === 'function') return `[Function${value.name ? `: ${value.name}` : ''}]`;

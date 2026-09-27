@@ -24,13 +24,16 @@ import { liveDiagnostics } from './live-diagnostics';
 import { toDiagnostics } from './diagnostics-client';
 import type { CodeIssue, CompilerReply, CompilerRequest, LogLevel, RunnerReply } from './protocol';
 import './style.css';
+import { DraftSync } from './draft-sync';
+import { setupAccount } from './account';
+import { SandboxRunner } from './sandbox-runner';
+import { formatTypeScript } from './formatter';
 
 const element = (id: string): HTMLElement => {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Elemento ausente: ${id}`);
   return node;
 };
-const storageKey = 'typescript-pad:source';
 const outputPreferenceKey = 'typescript-pad:output-expanded';
 let outputExpanded = false;
 try {
@@ -45,18 +48,9 @@ const numeros: number[] = [1, 2, 3, 4];
 const dobrados = numeros.map((numero) => numero * 2);
 console.log(dobrados);
 `;
-let storageAvailable = true;
-const loadSource = () => {
-  try {
-    return localStorage.getItem(storageKey) ?? initialSource;
-  } catch {
-    storageAvailable = false;
-    return initialSource;
-  }
-};
 let saveTimer: number | undefined;
 let compiler: Worker | undefined;
-let runner: Worker | undefined;
+let runner: SandboxRunner | undefined;
 let deadline: number | undefined;
 let requestId = 0;
 let phase: 'idle' | 'compiling' | 'running' = 'idle';
@@ -67,21 +61,26 @@ const runStatus = element('run-status');
 const runButton = element('run');
 const consoleView = element('console');
 const consolePanel = element('console-panel');
+const formatButton = element('format') as HTMLButtonElement;
+const playIcon =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>';
+const stopIcon =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1"/></svg>';
 const stopButton = document.createElement('button');
 stopButton.id = 'stop';
-stopButton.className = 'quiet-button';
-stopButton.textContent = 'Parar';
+stopButton.className = 'quiet-button icon-button danger-button';
+stopButton.innerHTML = stopIcon;
 stopButton.title = 'Encerrar execução e tarefas assíncronas';
+stopButton.setAttribute('aria-label', stopButton.title);
 stopButton.hidden = true;
 runButton.before(stopButton);
 
 const setPhase = (next: typeof phase) => {
   phase = next;
   const busy = phase !== 'idle';
-  runButton.innerHTML = busy
-    ? '<span aria-hidden="true">□</span> Parar'
-    : '<span aria-hidden="true">▷</span> Run';
+  runButton.innerHTML = busy ? stopIcon : playIcon;
   runButton.title = busy ? 'Parar execução' : 'Executar código (Shift + Enter)';
+  runButton.setAttribute('aria-label', busy ? 'Parar execução' : 'Executar código');
   stopButton.hidden = !runner || busy;
   toolbar.setBusy(busy);
 };
@@ -202,7 +201,7 @@ const run = () => {
     javascriptView.dispatch({
       changes: { from: 0, to: javascriptView.state.doc.length, insert: lastJavascript },
     });
-    runner = new Worker(new URL('./runner.worker.ts', import.meta.url), { type: 'module' });
+    runner = new SandboxRunner();
     setPhase('running');
     runStatus.textContent = 'Executando…';
     runner.onerror = (error) => {
@@ -259,21 +258,28 @@ const runOrStop = () => {
   else stopExecution();
 };
 
+const syncLabels = {
+  local: 'Salvo no dispositivo', pending: 'Aguardando sincronização…', saved: 'Sincronizado',
+  conflict: 'Duas versões · revisar', error: 'Salvo aqui · tentar sincronizar',
+  'storage-error': 'Não foi possível salvar aqui — copie seu código',
+};
+const sync = new DraftSync(localStorage, initialSource, () => {
+  saveStatus.textContent = syncLabels[sync.status];
+  saveStatus.classList.toggle('needs-attention', sync.hasConflict);
+  if (editor.state.doc.toString() !== sync.source) {
+    stopExecution('Código sincronizado');
+    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: sync.source } });
+  }
+});
 const save = () => {
   window.clearTimeout(saveTimer);
-  try {
-    localStorage.setItem(storageKey, editor.state.doc.toString());
-    storageAvailable = true;
-    saveStatus.textContent = 'Salvo no dispositivo';
-  } catch {
-    storageAvailable = false;
-    saveStatus.textContent = 'Não foi possível salvar — copie seu código';
-  }
+  sync.edit(editor.state.doc.toString());
+  void sync.flush();
 };
 const editor = new EditorView({
   parent: element('editor'),
   state: EditorState.create({
-    doc: loadSource(),
+    doc: sync.source,
     extensions: [
       lineNumbers(),
       highlightActiveLineGutter(),
@@ -312,9 +318,9 @@ const editor = new EditorView({
       ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
-          saveStatus.textContent = 'Salvando…';
+          sync.edit(update.state.doc.toString());
           window.clearTimeout(saveTimer);
-          saveTimer = window.setTimeout(save, 250);
+          saveTimer = window.setTimeout(save, 750);
         }
         if (update.selectionSet || update.docChanged) {
           const cursor = update.state.selection.main.head;
@@ -337,15 +343,63 @@ const javascriptView = new EditorView({
     EditorView.contentAttributes.of({ 'aria-label': 'JavaScript compilado' }),
   ],
 });
-const toolbar = setupKeyboardToolbar(element('keyboard-toolbar'), editor, runOrStop);
+let formatFeedbackTimer: number | undefined;
+const showFormatFeedback = (state: 'success' | 'error', label: string) => {
+  window.clearTimeout(formatFeedbackTimer);
+  formatButton.dataset.state = state;
+  formatButton.title = label;
+  formatButton.setAttribute('aria-label', label);
+  formatFeedbackTimer = window.setTimeout(() => {
+    delete formatButton.dataset.state;
+    formatButton.title = 'Formatar código';
+    formatButton.setAttribute('aria-label', 'Formatar código');
+  }, 1500);
+};
+const formatEditor = async () => {
+  if (formatButton.disabled) return;
+  formatButton.disabled = true;
+  formatButton.setAttribute('aria-busy', 'true');
+  const source = editor.state.doc.toString();
+  try {
+    const result = await formatTypeScript(source, editor.state.selection.main.head);
+    if (result.formatted !== source) {
+      editor.dispatch({
+        changes: { from: 0, to: editor.state.doc.length, insert: result.formatted },
+        selection: { anchor: result.cursorOffset },
+        scrollIntoView: true,
+        userEvent: 'input',
+      });
+    }
+    showFormatFeedback(
+      'success',
+      result.formatted === source ? 'Código já formatado' : 'Código formatado',
+    );
+  } catch {
+    showFormatFeedback('error', 'Não foi possível formatar');
+  } finally {
+    formatButton.disabled = false;
+    formatButton.removeAttribute('aria-busy');
+    editor.focus();
+  }
+};
+const toolbar = setupKeyboardToolbar(element('keyboard-toolbar'), editor, runOrStop, () => {
+  void formatEditor();
+});
 renderOutput();
 element('toggle-output').addEventListener('pointerdown', (event) => {
   if (editor.hasFocus) event.preventDefault();
 });
 element('toggle-output').addEventListener('click', () => setOutputExpanded(!outputExpanded));
-if (!storageAvailable) saveStatus.textContent = 'Armazenamento indisponível — copie seu código';
+saveStatus.textContent = syncLabels[sync.status];
+setupAccount(sync);
 runButton.addEventListener('click', runOrStop);
 stopButton.addEventListener('click', () => stopExecution());
+formatButton.addEventListener('pointerdown', (event) => {
+  if (editor.hasFocus) event.preventDefault();
+});
+formatButton.addEventListener('click', () => {
+  void formatEditor();
+});
 element('clear').addEventListener('click', clearConsole);
 for (const name of ['console', 'js'] as const) {
   const tab = element(`${name}-tab`);
@@ -372,14 +426,28 @@ for (const name of ['console', 'js'] as const) {
 }
 const copy = async (button: HTMLElement, content: string) => {
   const label = button.textContent;
+  const title = button.title;
+  const ariaLabel = button.getAttribute('aria-label');
   try {
     await navigator.clipboard.writeText(content);
-    button.textContent = 'Copiado!';
+    if (button.classList.contains('icon-button')) {
+      button.dataset.state = 'success';
+      button.title = 'Copiado!';
+      button.setAttribute('aria-label', 'Copiado!');
+    } else button.textContent = 'Copiado!';
   } catch {
-    button.textContent = 'Falha ao copiar';
+    if (button.classList.contains('icon-button')) {
+      button.dataset.state = 'error';
+      button.title = 'Falha ao copiar';
+      button.setAttribute('aria-label', 'Falha ao copiar');
+    } else button.textContent = 'Falha ao copiar';
   }
   window.setTimeout(() => {
-    button.textContent = label;
+    if (button.classList.contains('icon-button')) {
+      delete button.dataset.state;
+      button.title = title;
+      if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+    } else button.textContent = label;
   }, 1500);
 };
 element('copy').addEventListener('click', () => {
@@ -394,4 +462,40 @@ document.addEventListener('visibilitychange', () => {
     save();
     if (runner || phase !== 'idle') stopExecution();
   }
+});
+
+const conflictDialog = document.querySelector<HTMLDialogElement>('#conflict-dialog')!;
+const localVersion = document.querySelector<HTMLTextAreaElement>('#local-version')!;
+const cloudVersion = document.querySelector<HTMLTextAreaElement>('#cloud-version')!;
+let reviewedRevision: number | undefined;
+saveStatus.addEventListener('click', () => {
+  if (!sync.hasConflict) { void sync.flush(); return; }
+  localVersion.value = sync.source;
+  cloudVersion.value = sync.cloud?.source ?? '';
+  reviewedRevision = sync.cloud?.revision;
+  conflictDialog.showModal();
+});
+for (const choice of ['local', 'cloud'] as const) {
+  element('keep-' + choice).addEventListener('click', () => {
+    sync.resolve(choice, reviewedRevision);
+    if (!sync.hasConflict) { conflictDialog.close(); void sync.flush(); }
+    else if (reviewedRevision !== sync.cloud?.revision) {
+      cloudVersion.value = sync.cloud?.source ?? '';
+      reviewedRevision = sync.cloud?.revision;
+      element('conflict-title').textContent = 'A versão da nuvem mudou. Revise novamente.';
+    }
+  });
+}
+element('close-conflict').addEventListener('click', () => conflictDialog.close());
+element('export-recoveries').addEventListener('click', () => {
+  const copies: unknown[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('typescript-pad:recovery:')) copies.push(JSON.parse(localStorage.getItem(key)!));
+  }
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(copies, null, 2)], { type: 'application/json' }));
+  link.download = 'typescript-pad-recuperacoes.json';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 });
