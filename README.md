@@ -65,6 +65,7 @@ The course installs a source tarball generated with `npm pack`, then calls
 `buildWeb({ outDir, envDir })` from `build-web.mjs`. This compiles the same sources for
 `/pad/` without requiring sibling repositories in production. TypeScript library paths
 are resolved through Vite so both standalone and npm-hoisted installations work offline.
+The complete update and Sites publication procedure is documented in [DEPLOY.md](DEPLOY.md).
 
 ## Development
 
