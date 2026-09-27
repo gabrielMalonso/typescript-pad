@@ -34,12 +34,12 @@ describe('background diagnostics', () => {
     const third = client.check('latest');
     expect(await second).toEqual([]);
     expect(worker.postMessage).toHaveBeenCalledTimes(1);
-    worker.reply({ id: 999, issues: [] });
+    worker.reply({ id: 999, issues: [], tokens: [] });
     expect(worker.postMessage).toHaveBeenCalledTimes(1);
-    worker.reply({ id: 1, issues: [] });
+    worker.reply({ id: 1, issues: [], tokens: [] });
     expect(await first).toEqual([]);
     expect(worker.postMessage).toHaveBeenLastCalledWith({ id: 3, source: 'latest', kind: 'check' });
-    worker.reply({ id: 3, issues: [{ from: 0, to: 6, line: 1, column: 1, code: 2304, message: 'Unknown name' }] });
+    worker.reply({ id: 3, issues: [{ from: 0, to: 6, line: 1, column: 1, code: 2304, message: 'Unknown name' }], tokens: [] });
     expect(await third).toEqual([{ from: 0, to: 6, severity: 'error', source: 'TS2304', message: 'Unknown name' }]);
     client.destroy();
   });
@@ -54,7 +54,7 @@ describe('background diagnostics', () => {
     expect(await stalled).toEqual([expect.objectContaining({ severity: 'warning', source: 'Editor' })]);
     const replacement = FakeWorker.instances[1];
     expect(replacement.postMessage).toHaveBeenCalledWith({ id: 2, source: 'new', kind: 'check' });
-    replacement.reply({ id: 2, issues: [] });
+    replacement.reply({ id: 2, issues: [], tokens: [] });
     expect(await newest).toEqual([]);
     client.destroy();
   });

@@ -7,6 +7,12 @@ export interface CodeIssue {
   code: number;
 }
 
+export interface SemanticToken {
+  from: number;
+  to: number;
+  kind: 'parameter';
+}
+
 export type CompileResult =
   | { ok: true; javascript: string; issues: [] }
   | { ok: false; javascript: null; issues: CodeIssue[] };
@@ -17,7 +23,9 @@ export interface CompilerRequest {
   source: string;
   kind: 'compile' | 'check';
 }
-export type CheckReply = { id: number; issues: CodeIssue[] } | { id: number; error: string };
+export type CheckReply =
+  | { id: number; issues: CodeIssue[]; tokens: SemanticToken[] }
+  | { id: number; error: string };
 export type LogLevel = 'log' | 'info' | 'warn' | 'error';
 export type RunnerReply =
   | { type: 'log'; level: LogLevel; text: string }

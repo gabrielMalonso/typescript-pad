@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { check, compile } from '../src/compiler';
+import { check, checkForEditor, compile } from '../src/compiler';
 import { formatValue } from '../src/format-value';
 
 describe('offline TypeScript compiler', () => {
@@ -66,6 +66,13 @@ describe('offline TypeScript compiler', () => {
     expect(result.ok).toBe(true);
     expect(result.javascript).toContain('await Promise.resolve()');
     expect(result.javascript).not.toContain('export');
+  });
+  test('identifies parameter declarations and references for semantic highlighting', () => {
+    const source =
+      'function dobro(valor: number) { const local = valor * 2; return local; }';
+    const tokens = checkForEditor(source).tokens.map((token) => source.slice(token.from, token.to));
+
+    expect(tokens).toEqual(['valor', 'valor']);
   });
 });
 

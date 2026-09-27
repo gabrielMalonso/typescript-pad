@@ -4,7 +4,7 @@ import { tags as t } from '@lezer/highlight';
 import '@fontsource/jetbrains-mono/latin-400.css';
 import '@fontsource/jetbrains-mono/latin-400-italic.css';
 
-// Gabriel's GitHub Dark token colors, kept identical to the customized LiveCodes editor.
+// Gabriel's customized GitHub Dark Default colors from VSCodium.
 export const githubDark = [
   EditorView.theme(
     {
@@ -44,6 +44,16 @@ export const githubDark = [
         color: '#fff',
       },
       '.cm-matchingBracket': { backgroundColor: '#2f81f733', outline: '1px solid #388bfd66' },
+      '.cm-semantic-parameter': { color: '#58a6ff', fontStyle: 'italic' },
+      '.cm-bracket-level-1': { color: '#79c0ff' },
+      '.cm-bracket-level-2': { color: '#56d364' },
+      '.cm-bracket-level-3': { color: '#e3b341' },
+      '.cm-bracket-level-4': { color: '#ffa198' },
+      '.cm-bracket-level-5': { color: '#ff9bce' },
+      '.cm-bracket-level-6': { color: '#d2a8ff' },
+      '.cm-bracket-unexpected': { color: '#7d8590' },
+      '.cm-indent-guide': { boxShadow: 'inset -1px 0 #e6edf31f' },
+      '.cm-indent-guide-active': { boxShadow: 'inset -1px 0 #e6edf33d' },
       '.cm-panels': { backgroundColor: '#161b22', color: '#e6edf3' },
       '.cm-searchMatch': { backgroundColor: '#d2992240' },
       '.cm-searchMatch-selected': { backgroundColor: '#d2992280' },
@@ -54,7 +64,10 @@ export const githubDark = [
     HighlightStyle.define([
       { tag: [t.comment, t.docComment], color: '#6a9955' },
       { tag: [t.string, t.character], color: '#f2cc60' },
-      { tag: [t.keyword, t.controlKeyword, t.modifier, t.operatorKeyword], color: '#ff7b72' },
+      {
+        tag: [t.keyword, t.controlKeyword, t.modifier, t.operator, t.operatorKeyword],
+        color: '#ff7b72',
+      },
       { tag: [t.variableName, t.name], color: '#e6edf3' },
       { tag: [t.function(t.variableName), t.function(t.propertyName)], color: '#d2a8ff' },
       { tag: [t.typeName, t.className, t.standard(t.typeName)], color: '#ffb77a' },

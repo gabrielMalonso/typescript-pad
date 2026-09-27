@@ -28,6 +28,8 @@ import { DraftSync } from './draft-sync';
 import { setupAccount } from './account';
 import { SandboxRunner } from './sandbox-runner';
 import { formatTypeScript } from './formatter';
+import { bracketPairColors } from './bracket-pair-colors';
+import { indentGuides } from './indent-guides';
 
 const element = (id: string): HTMLElement => {
   const node = document.getElementById(id);
@@ -289,10 +291,13 @@ const editor = new EditorView({
       bracketMatching(),
       closeBrackets(),
       javascript({ typescript: true }),
+      bracketPairColors,
+      indentGuides,
       autocompletion(),
       highlightActiveLine(),
       highlightSelectionMatches(),
       indentUnit.of('    '),
+      EditorView.lineWrapping,
       githubDark,
       liveDiagnostics,
       EditorView.contentAttributes.of({
@@ -336,6 +341,9 @@ const javascriptView = new EditorView({
   parent: element('javascript'),
   extensions: [
     javascript(),
+    bracketPairColors,
+    indentGuides,
+    EditorView.lineWrapping,
     githubDark,
     lineNumbers(),
     EditorState.readOnly.of(true),

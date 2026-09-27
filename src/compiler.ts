@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { CodeIssue, CompileResult } from './protocol';
+import type { CodeIssue, CompileResult, SemanticToken } from './protocol';
 
 // The compiler and standard libraries ship inside the APK; there are no CDN requests.
 const rawLibraries = import.meta.glob<string>('@typescript-libs/lib.*.d.ts', {
@@ -95,11 +95,37 @@ const analyze = (source: string) => {
     ts.forEachChild(node, visit);
   };
   visit(file);
-  return { program, issues };
+  return { program, file, issues };
+};
+
+const parameterTokens = (
+  program: ts.Program,
+  file: ts.SourceFile,
+  sourceLength: number,
+): SemanticToken[] => {
+  const checker = program.getTypeChecker();
+  const tokens: SemanticToken[] = [];
+  const visit = (node: ts.Node) => {
+    if (node.getStart(file) >= sourceLength) return;
+    if (ts.isIdentifier(node)) {
+      const symbol = checker.getSymbolAtLocation(node);
+      if (symbol?.declarations?.some(ts.isParameter)) {
+        tokens.push({ from: node.getStart(file), to: node.getEnd(), kind: 'parameter' });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return tokens;
 };
 
 // Checking a draft never emits or executes JavaScript.
 export const check = (source: string): CodeIssue[] => analyze(source).issues;
+
+export const checkForEditor = (source: string) => {
+  const { program, file, issues } = analyze(source);
+  return { issues, tokens: parameterTokens(program, file, source.length) };
+};
 
 export const compile = (source: string): CompileResult => {
   const { program, issues } = analyze(source);

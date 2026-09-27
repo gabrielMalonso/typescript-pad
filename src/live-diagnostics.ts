@@ -1,10 +1,38 @@
 import { EditorState, StateEffect, StateField } from '@codemirror/state';
-import { EditorView, ViewPlugin, keymap, showTooltip } from '@codemirror/view';
+import { Decoration, EditorView, ViewPlugin, keymap, showTooltip } from '@codemirror/view';
+import type { DecorationSet } from '@codemirror/view';
 import type { Tooltip } from '@codemirror/view';
 import { forEachDiagnostic, linter, lintKeymap, setDiagnosticsEffect } from '@codemirror/lint';
 import { DiagnosticsClient } from './diagnostics-client';
+import type { SemanticToken } from './protocol';
 
-const checker = ViewPlugin.define(() => new DiagnosticsClient());
+const setSemanticTokens = StateEffect.define<readonly SemanticToken[]>();
+const semanticTokens = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(decorations, transaction) {
+    if (transaction.docChanged) decorations = Decoration.none;
+    for (const effect of transaction.effects) {
+      if (effect.is(setSemanticTokens)) {
+        decorations = Decoration.set(
+          effect.value.map((token) =>
+            Decoration.mark({ class: `cm-semantic-${token.kind}` }).range(token.from, token.to),
+          ),
+          true,
+        );
+      }
+    }
+    return decorations;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+const checker = ViewPlugin.define(
+  (view) =>
+    new DiagnosticsClient((source, tokens) => {
+      if (view.state.doc.toString() === source) {
+        view.dispatch({ effects: setSemanticTokens.of(tokens) });
+      }
+    }),
+);
 const showIssue = StateEffect.define<Tooltip | null>();
 const tappedIssue = StateField.define<Tooltip | null>({
   create: () => null,
@@ -26,6 +54,7 @@ const tappedIssue = StateField.define<Tooltip | null>({
 });
 
 export const liveDiagnostics = [
+  semanticTokens,
   checker,
   linter((view) => view.plugin(checker)?.check(view.state.doc.toString()) ?? [], {
     delay: 400,

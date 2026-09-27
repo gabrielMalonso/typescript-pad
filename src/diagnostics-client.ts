@@ -1,5 +1,5 @@
 import type { Diagnostic } from '@codemirror/lint';
-import type { CheckReply, CodeIssue, CompilerRequest } from './protocol';
+import type { CheckReply, CodeIssue, CompilerRequest, SemanticToken } from './protocol';
 
 export const toDiagnostics = (issues: readonly CodeIssue[]): Diagnostic[] =>
   issues.map((issue) => ({
@@ -24,6 +24,13 @@ export class DiagnosticsClient {
   private deadline?: ReturnType<typeof setTimeout>;
   private nextId = 0;
 
+  constructor(
+    private readonly updateTokens: (
+      source: string,
+      tokens: readonly SemanticToken[],
+    ) => void = () => {},
+  ) {}
+
   check(source: string): Promise<readonly Diagnostic[]> {
     return new Promise((resolve) => {
       this.queued?.resolve([]);
@@ -46,6 +53,7 @@ export class DiagnosticsClient {
             return;
           }
           clearTimeout(this.deadline);
+          this.updateTokens(this.active.source, event.data.tokens);
           this.active.resolve(toDiagnostics(event.data.issues));
           this.active = undefined;
           this.start();
