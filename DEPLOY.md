@@ -35,7 +35,15 @@ O `npm pack` deve ser executado no diretório do **Pad**. No repositório do cur
 somente `leitor/vendor/typescript-pad-0.2.0.tgz` e `leitor/package-lock.json`, salvo se a
 tarefa pedir outras mudanças. Enviar esse commit para `origin/main`.
 
-## 2. Publicar pelo Sites
+## 2. Atualizar o back-end e publicar pelo Sites
+
+A biblioteca usa a tabela `padFiles` e as funções `pad:files`, `pad:file` e
+`pad:saveFile` no Convex do leitor. Publicar primeiro o schema e as funções pelo
+procedimento do leitor (`npm run deploy:prepare`, após autorização de publicação),
+e depois o Pad web/APK. As funções antigas de rascunho permanecem compatíveis.
+Não executar `convex dev --once` apenas para checar tipos: esse comando publica
+alterações no serviço. Para validação local, usar os testes e `tsc --noEmit -p convex`.
+
 
 1. Ler `leitor/.openai/hosting.json` e consultar o projeto existente no Sites.
 2. Confirmar a URL, a versão atual e o acesso. Preservar o acesso owner-only existente.

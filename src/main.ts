@@ -30,6 +30,7 @@ import { SandboxRunner } from './sandbox-runner';
 import { formatTypeScript } from './formatter';
 import { bracketPairColors } from './bracket-pair-colors';
 import { indentGuides } from './indent-guides';
+import { setupStudyLibrary } from './library-ui';
 
 const element = (id: string): HTMLElement => {
   const node = document.getElementById(id);
@@ -242,23 +243,41 @@ const syncLabels = {
   conflict: 'Duas versões · revisar', error: 'Salvo aqui · tentar sincronizar',
   'storage-error': 'Não foi possível salvar aqui — copie seu código',
 };
+let library: ReturnType<typeof setupStudyLibrary> | undefined;
+const renderSaveStatus = () => {
+  sync.setShared(!library?.hasActiveFile);
+  const libraryLabels = {
+    local: 'Salvo no dispositivo', pending: 'Salvo aqui · sincronização pendente…',
+    saved: 'Sincronizado', error: 'Salvo aqui · tentar sincronizar',
+    'storage-error': 'Falha ao guardar a biblioteca · exporte uma cópia',
+  };
+  saveStatus.textContent = library?.failed
+    ? 'Falha ao salvar arquivo · exporte uma cópia'
+    : library?.hasActiveFile ? libraryLabels[library.sync.status] : syncLabels[sync.status];
+  saveStatus.classList.toggle(
+    'needs-attention',
+    Boolean(library?.failed) || (library?.hasActiveFile
+      ? library.sync.status === 'storage-error' || library.sync.status === 'error'
+      : sync.hasConflict || sync.status === 'storage-error'),
+  );
+};
 const sync = new DraftSync(localStorage, initialSource, () => {
-  saveStatus.textContent = syncLabels[sync.status];
-  saveStatus.classList.toggle('needs-attention', sync.hasConflict);
-  if (editor.state.doc.toString() !== sync.source) {
+  renderSaveStatus();
+  if (!library?.hasActiveFile && editor.state.doc.toString() !== sync.source) {
+    library?.detach();
     stopExecution('Código sincronizado');
     editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: sync.source } });
   }
 });
 const save = () => {
   window.clearTimeout(saveTimer);
+  library?.edit(editor.state.doc.toString());
   sync.edit(editor.state.doc.toString());
   void sync.flush();
 };
-const editor = new EditorView({
-  parent: element('editor'),
-  state: EditorState.create({
-    doc: sync.source,
+const createEditorState = (doc: string) =>
+  EditorState.create({
+    doc,
     extensions: [
       lineNumbers(),
       highlightActiveLineGutter(),
@@ -300,6 +319,7 @@ const editor = new EditorView({
       ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
+          library?.edit(update.state.doc.toString());
           sync.edit(update.state.doc.toString());
           window.clearTimeout(saveTimer);
           saveTimer = window.setTimeout(save, 750);
@@ -312,8 +332,9 @@ const editor = new EditorView({
         }
       }),
     ],
-  }),
-});
+  });
+const editor = new EditorView({ parent: element('editor'), state: createEditorState(sync.source) });
+let documentGeneration = 0;
 let formatFeedbackTimer: number | undefined;
 const showFormatFeedback = (state: 'success' | 'error', label: string) => {
   window.clearTimeout(formatFeedbackTimer);
@@ -331,8 +352,10 @@ const formatEditor = async () => {
   formatButton.disabled = true;
   formatButton.setAttribute('aria-busy', 'true');
   const source = editor.state.doc.toString();
+  const generation = documentGeneration;
   try {
     const result = await formatTypeScript(source, editor.state.selection.main.head);
+    if (generation !== documentGeneration || source !== editor.state.doc.toString()) return;
     if (result.formatted !== source) {
       editor.dispatch({
         changes: { from: 0, to: editor.state.doc.length, insert: result.formatted },
@@ -368,8 +391,24 @@ for (const id of ['toggle-output', 'close-output'] as const) {
     if (hadFocus) element(id === 'toggle-output' ? 'close-output' : 'toggle-output').focus();
   });
 }
-saveStatus.textContent = syncLabels[sync.status];
-setupAccount(sync);
+library = setupStudyLibrary({
+  source: () => editor.state.doc.toString(),
+  replace: (source, focus = true) => {
+    sync.setShared(false);
+    documentGeneration++;
+    stopExecution('Pronto');
+    clearConsole();
+    // History belongs to a study; undo must never restore another file's contents.
+    editor.setState(createEditorState(source));
+    element('cursor-position').textContent = 'Ln 1, Col 1';
+    sync.edit(source);
+    save();
+    if (focus) editor.focus();
+  },
+  statusChanged: renderSaveStatus,
+});
+renderSaveStatus();
+setupAccount(sync, library.sync);
 runButton.addEventListener('click', runOrStop);
 stopButton.addEventListener('click', () => stopExecution());
 formatButton.addEventListener('pointerdown', (event) => {
@@ -421,6 +460,7 @@ const localVersion = document.querySelector<HTMLTextAreaElement>('#local-version
 const cloudVersion = document.querySelector<HTMLTextAreaElement>('#cloud-version')!;
 let reviewedRevision: number | undefined;
 saveStatus.addEventListener('click', () => {
+  if (library?.hasActiveFile) { void library.sync.refresh(); return; }
   if (!sync.hasConflict) { void sync.flush(); return; }
   localVersion.value = sync.source;
   cloudVersion.value = sync.cloud?.source ?? '';

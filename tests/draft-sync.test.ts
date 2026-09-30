@@ -10,6 +10,20 @@ const cloud = (source: string, revision = 1): CloudDraft => ({ source, revision,
 const saved = async (): Promise<SaveResult> => ({ status: 'saved', revision: 2 });
 
 describe('durable Pad draft', () => {
+  it('keeps named-file recovery local while the library syncs that file independently', async () => {
+    const store = memory();
+    const changed = vi.fn();
+    const send = vi.fn(saved);
+    const sync = new DraftSync(store, 'draft', changed);
+    sync.setShared(false);
+    sync.connect('owner', send);
+    sync.edit('named study');
+    sync.receive(cloud('unrelated draft'));
+    await sync.flush();
+    expect(sync.source).toBe('named study');
+    expect(send).not.toHaveBeenCalled();
+    expect(new DraftSync(store, 'example', () => {}).source).toBe('named study');
+  });
   it('migrates the existing tablet draft and retains edits without an account', () => {
     const store = memory();
     store.setItem('typescript-pad:source', 'existing tablet code');
