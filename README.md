@@ -19,8 +19,9 @@ Built with Capacitor 8, CodeMirror 6, and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
 - Draft automatically saved on the device.
-- Swipeable symbol toolbar above the Android keyboard, with Tab, Shift+Tab,
-  formatting, and Run/Stop always accessible.
+- Swipeable toolbar above the Android keyboard: brackets and punctuation on the first
+  page, indentation, formatting, Run/Stop, and operators on the second. Narrow screens
+  split these groups into more pages to keep the touch targets comfortable.
 
 ## Scope and limitations
 

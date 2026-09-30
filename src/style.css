@@ -359,20 +359,15 @@ button.log-row {
   background: #2f81f733;
   border-color: #58a6ff;
 }
-.keyboard-fixed {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 4px;
-}
-#keyboard-toolbar .keyboard-fixed button {
+#keyboard-toolbar .keyboard-action {
   font-size: 13px;
   min-width: 52px;
 }
-#keyboard-toolbar .keyboard-fixed .keyboard-run {
+#keyboard-toolbar .keyboard-run {
   font-size: 26px;
   color: #79c0ff;
 }
-#keyboard-toolbar .keyboard-fixed .keyboard-format {
+#keyboard-toolbar .keyboard-format {
   min-width: 44px;
 }
 .keyboard-pager {
@@ -394,7 +389,7 @@ button.log-row {
   display: grid;
   flex: 0 0 100%;
   gap: 4px;
-  grid-auto-columns: minmax(44px, 1fr);
+  grid-auto-columns: minmax(52px, 1fr);
   grid-auto-flow: column;
   scroll-snap-align: start;
   scroll-snap-stop: always;
