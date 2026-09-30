@@ -1,7 +1,7 @@
 # TypeScript Pad — TypeScript
 
 An open-source, offline playground for writing, running, and experimenting with
-**TypeScript on Android**. An editor, console, and compiled JavaScript viewer
+**TypeScript on Android**. An editor and console
 in a simple interface designed for on-screen keyboards on tablets.
 
 No ads or account required. Optional sign-in syncs one draft with the course website.
@@ -13,14 +13,15 @@ Built with Capacitor 8, CodeMirror 6, and
 - GitHub Dark-based theme and JetBrains Mono font.
 - Icon actions for formatting, copying, and running or stopping code.
 - On-demand Prettier formatting that preserves the cursor and stays out of the way while typing.
-- Collapsible Console/JavaScript panel that remembers its visibility setting.
+- Collapsible console on the right, with aligned editor and console headers. Open and close controls share the same top-right position; visibility is remembered.
 - Type and syntax errors highlighted automatically after a short pause in typing,
   without running the code. Hover or tap an underline to read the explanation and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
 - Draft automatically saved on the device.
-- Swipeable symbol toolbar above the Android keyboard, with Tab, Shift+Tab,
-  formatting, and Run/Stop always accessible.
+- Swipeable toolbar above the Android keyboard: brackets and punctuation on the first
+  page, indentation, formatting, Run/Stop, and operators on the second. Narrow screens
+  split these groups into more pages to keep the touch targets comfortable.
 
 ## Scope and limitations
 
@@ -32,7 +33,8 @@ Code runs in a disposable Web Worker inside an opaque-origin sandboxed iframe,
 without access to the application's storage, login session, DOM, network, or native bridge.
 This is a personal playground, not a service for executing hostile programs.
 Promises, top-level await, timers, and other Web Worker APIs
-are supported. Each run is limited to 30 seconds, including asynchronous tasks.
+are supported. Each run is limited to 5 seconds, including asynchronous tasks.
+Compilation has a separate 30-second timeout.
 Starting another run, pressing Stop, or moving the app to the background terminates
 the previous worker. Up to 500 log entries are displayed per run.
 

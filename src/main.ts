@@ -43,7 +43,6 @@ try {
 } catch {
   // Panel visibility still works when local storage is unavailable.
 }
-let selectedPanel: 'console' | 'js' = 'console';
 const initialSource = `// Um espaço para pensar em TypeScript.
 const numeros: number[] = [1, 2, 3, 4];
 
@@ -56,13 +55,13 @@ let runner: SandboxRunner | undefined;
 let deadline: number | undefined;
 let requestId = 0;
 let phase: 'idle' | 'compiling' | 'running' = 'idle';
-let lastJavascript = '';
 let logCount = 0;
 const saveStatus = element('save-status');
 const runStatus = element('run-status');
 const runButton = element('run');
 const consoleView = element('console');
 const consolePanel = element('console-panel');
+const consoleScroll = element('console-scroll');
 const formatButton = element('format') as HTMLButtonElement;
 const playIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg>';
@@ -107,7 +106,7 @@ const appendLog = (level: LogLevel, text: string, issue?: CodeIssue) => {
   if (logCount >= 501) return;
   if (logCount === 0) consoleView.replaceChildren();
   const nearBottom =
-    consolePanel.scrollHeight - consolePanel.scrollTop - consolePanel.clientHeight < 50;
+    consoleScroll.scrollHeight - consoleScroll.scrollTop - consoleScroll.clientHeight < 50;
   const row = document.createElement(issue ? 'button' : 'p');
   row.className = `log-row ${level}`;
   row.textContent = text;
@@ -123,25 +122,17 @@ const appendLog = (level: LogLevel, text: string, issue?: CodeIssue) => {
   }
   consoleView.append(row);
   element('log-count').textContent = String(++logCount);
-  if (nearBottom) consolePanel.scrollTop = consolePanel.scrollHeight;
+  if (nearBottom) consoleScroll.scrollTop = consoleScroll.scrollHeight;
 };
 
 const renderOutput = () => {
   document.querySelector('.workspace')?.classList.toggle('output-collapsed', !outputExpanded);
   const toggle = element('toggle-output');
   toggle.setAttribute('aria-expanded', String(outputExpanded));
-  toggle.title = outputExpanded ? 'Recolher painel' : 'Mostrar painel';
-  toggle.setAttribute('aria-label', toggle.title);
-  for (const name of ['console', 'js'] as const) {
-    element(`${name}-panel`).hidden = !outputExpanded || name !== selectedPanel;
-    const tab = element(`${name}-tab`);
-    tab.setAttribute('aria-selected', String(name === selectedPanel));
-    tab.tabIndex = name === selectedPanel ? 0 : -1;
-  }
-  element('clear').hidden = !outputExpanded || selectedPanel !== 'console';
-  element('copy-js').hidden = !outputExpanded || selectedPanel !== 'js';
+  element('close-output').setAttribute('aria-expanded', String(outputExpanded));
+  toggle.hidden = outputExpanded;
+  consolePanel.inert = !outputExpanded;
   editor.requestMeasure();
-  if (outputExpanded && selectedPanel === 'js') javascriptView.requestMeasure();
 };
 const setOutputExpanded = (expanded: boolean) => {
   outputExpanded = expanded;
@@ -152,19 +143,9 @@ const setOutputExpanded = (expanded: boolean) => {
     // Keep the user's choice for this session even if it cannot be persisted.
   }
 };
-const selectPanel = (panel: 'console' | 'js') => {
-  selectedPanel = panel;
-  renderOutput();
-};
-
 const run = () => {
   stopExecution('Compilando…');
   clearConsole();
-  selectPanel('console');
-  lastJavascript = '';
-  javascriptView.dispatch({
-    changes: { from: 0, to: javascriptView.state.doc.length, insert: '' },
-  });
   const source = editor.state.doc.toString();
   const id = ++requestId;
   setPhase('compiling');
@@ -199,10 +180,6 @@ const run = () => {
       runStatus.textContent = `${result.issues.length} erro(s)`;
       return;
     }
-    lastJavascript = result.javascript;
-    javascriptView.dispatch({
-      changes: { from: 0, to: javascriptView.state.doc.length, insert: lastJavascript },
-    });
     runner = new SandboxRunner();
     setPhase('running');
     runStatus.textContent = 'Executando…';
@@ -237,17 +214,17 @@ const run = () => {
           break;
       }
     };
-    runner.postMessage({ javascript: lastJavascript });
+    runner.postMessage({ javascript: result.javascript });
     // Keep async logs alive for a bounded time. Busy loops never block the UI.
     deadline = window.setTimeout(() => {
       if (phase === 'running') {
-        appendLog('warn', 'Execução interrompida após 30 segundos.');
+        appendLog('warn', 'Execução interrompida após 5 segundos.');
         stopExecution('Limite de tempo');
       } else {
         const label = runStatus.textContent ?? 'Pronto';
         stopExecution(label);
       }
-    }, 30_000);
+    }, 5_000);
   };
   compiler.postMessage({ id, source, kind: 'compile' } satisfies CompilerRequest);
   deadline = window.setTimeout(() => {
@@ -337,20 +314,6 @@ const editor = new EditorView({
     ],
   }),
 });
-const javascriptView = new EditorView({
-  parent: element('javascript'),
-  extensions: [
-    javascript(),
-    bracketPairColors,
-    indentGuides,
-    EditorView.lineWrapping,
-    githubDark,
-    lineNumbers(),
-    EditorState.readOnly.of(true),
-    EditorView.editable.of(false),
-    EditorView.contentAttributes.of({ 'aria-label': 'JavaScript compilado' }),
-  ],
-});
 let formatFeedbackTimer: number | undefined;
 const showFormatFeedback = (state: 'success' | 'error', label: string) => {
   window.clearTimeout(formatFeedbackTimer);
@@ -394,10 +357,17 @@ const toolbar = setupKeyboardToolbar(element('keyboard-toolbar'), editor, runOrS
   void formatEditor();
 });
 renderOutput();
-element('toggle-output').addEventListener('pointerdown', (event) => {
-  if (editor.hasFocus) event.preventDefault();
-});
-element('toggle-output').addEventListener('click', () => setOutputExpanded(!outputExpanded));
+for (const id of ['toggle-output', 'close-output'] as const) {
+  const button = element(id);
+  button.addEventListener('pointerdown', (event) => {
+    if (editor.hasFocus) event.preventDefault();
+  });
+  button.addEventListener('click', () => {
+    const hadFocus = button === document.activeElement;
+    setOutputExpanded(id === 'toggle-output');
+    if (hadFocus) element(id === 'toggle-output' ? 'close-output' : 'toggle-output').focus();
+  });
+}
 saveStatus.textContent = syncLabels[sync.status];
 setupAccount(sync);
 runButton.addEventListener('click', runOrStop);
@@ -409,29 +379,6 @@ formatButton.addEventListener('click', () => {
   void formatEditor();
 });
 element('clear').addEventListener('click', clearConsole);
-for (const name of ['console', 'js'] as const) {
-  const tab = element(`${name}-tab`);
-  tab.addEventListener('click', () => {
-    selectPanel(name);
-    setOutputExpanded(true);
-  });
-  tab.addEventListener('keydown', (event) => {
-    if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-      event.preventDefault();
-      const next =
-        event.key === 'Home'
-          ? 'console'
-          : event.key === 'End'
-            ? 'js'
-            : name === 'console'
-              ? 'js'
-              : 'console';
-      selectPanel(next);
-      setOutputExpanded(true);
-      element(`${next}-tab`).focus();
-    }
-  });
-}
 const copy = async (button: HTMLElement, content: string) => {
   const label = button.textContent;
   const title = button.title;
@@ -460,9 +407,6 @@ const copy = async (button: HTMLElement, content: string) => {
 };
 element('copy').addEventListener('click', () => {
   void copy(element('copy'), editor.state.doc.toString());
-});
-element('copy-js').addEventListener('click', () => {
-  void copy(element('copy-js'), lastJavascript);
 });
 window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => {

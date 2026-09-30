@@ -44,64 +44,41 @@
           <header class="pane-header">
             <span class="file-label"><b>TS</b> main.ts</span
             ><button id="save-status" class="text-button" aria-live="polite">Salvo no dispositivo</button>
-          </header>
-          <div id="editor"></div>
-        </section>
-        <section class="output-pane" aria-label="Resultado">
-          <header class="pane-header output-header">
-            <div class="output-tabs" role="tablist" aria-label="Resultado da execução">
-              <button
-                id="console-tab"
-                role="tab"
-                aria-selected="true"
-                aria-controls="console-panel"
-                tabindex="0"
-              >
-                Console <span id="log-count">0</span>
-              </button>
-              <button
-                id="js-tab"
-                role="tab"
-                aria-selected="false"
-                aria-controls="js-panel"
-                tabindex="-1"
-              >
-                JavaScript
-              </button>
-            </div>
-            <span id="run-status" role="status">Pronto</span>
-            <button id="clear" class="quiet-button small-button" title="Limpar console" hidden>
-              Limpar
-            </button>
-            <button id="copy-js" class="quiet-button small-button" hidden>Copiar JS</button>
             <button
               id="toggle-output"
-              class="quiet-button small-button"
-              aria-label="Mostrar painel"
-              title="Mostrar painel"
+              class="console-button icon-button"
+              aria-label="Mostrar console"
+              title="Mostrar console"
               aria-expanded="false"
-              aria-controls="console-panel js-panel"
+              aria-controls="console-panel"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m6 15 6-6 6 6" />
+                <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>
               </svg>
             </button>
           </header>
-          <div id="console-panel" role="tabpanel" aria-labelledby="console-tab" hidden>
+          <div id="editor"></div>
+        </section>
+        <section id="console-panel" class="output-pane" aria-label="Console" inert>
+          <header class="pane-header output-header">
+            <span class="console-title"><span class="console-label">Console</span><span id="log-count">0</span></span>
+            <button id="clear" class="text-button" title="Limpar console">Limpar</button>
+            <button id="close-output" class="console-button icon-button" aria-label="Recolher console" title="Recolher console" aria-expanded="true" aria-controls="console-panel">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg>
+            </button>
+          </header>
+          <div id="console-scroll">
             <div id="console" role="log" aria-label="Logs e erros">
               <p class="empty-state">
                 Seu resultado aparece aqui.<span>Use Run ou Shift + Enter para executar.</span>
               </p>
             </div>
           </div>
-          <div id="js-panel" role="tabpanel" aria-labelledby="js-tab" hidden>
-            <div id="javascript"></div>
-          </div>
         </section>
       </section>
       <footer class="status-bar">
         <span id="compiler-version">TypeScript 6.0.3</span
-        ><span id="cursor-position">Ln 1, Col 1</span><span>Execução local</span>
+        ><span id="run-status" role="status">Pronto</span><span id="cursor-position">Ln 1, Col 1</span><span>Execução local</span>
       </footer>
       <div id="keyboard-toolbar" role="toolbar" aria-label="Atalhos de código" hidden></div>
     </main>

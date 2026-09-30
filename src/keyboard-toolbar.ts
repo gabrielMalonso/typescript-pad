@@ -8,11 +8,6 @@ declare global {
   }
 }
 
-export const keyGroups = [
-  ['=', '=>', '<', '>', '"', '`', ':', ';'],
-  ['!', '&', '|', '{', '}', '[', ']'],
-];
-
 export const setupKeyboardToolbar = (
   toolbar: HTMLElement,
   editor: EditorView,
@@ -31,15 +26,21 @@ export const setupKeyboardToolbar = (
     button.addEventListener('click', action);
     return button;
   };
-  const fixed = document.createElement('div');
-  fixed.className = 'keyboard-fixed';
+  const makeSymbol = (symbol: string) =>
+    makeKey(symbol, () => {
+      editor.dispatch(editor.state.replaceSelection(symbol), {
+        scrollIntoView: true,
+        userEvent: 'input.type',
+      });
+      editor.focus();
+    });
   const play = makeKey('▷', runOrStop, 'Executar código');
   play.className = 'keyboard-run';
   const format = makeKey('', formatCode, 'Formatar código');
   format.className = 'keyboard-format';
   format.innerHTML =
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h10"/><path d="m17 16 2 2 3-4"/></svg>';
-  fixed.append(
+  const actions = [
     makeKey(
       'Tab',
       () => {
@@ -58,7 +59,12 @@ export const setupKeyboardToolbar = (
     ),
     format,
     play,
-  );
+  ];
+  actions.forEach((button) => button.classList.add('keyboard-action'));
+  const keyGroups = [
+    ['{', '}', '[', ']', '=', '<', '>', '"', '`', ':', ';'].map(makeSymbol),
+    [...actions, ...['!', '&', '|', '%', '*', '/', '-', '+', '='].map(makeSymbol)],
+  ];
   const pager = document.createElement('div');
   pager.className = 'keyboard-pager';
   const pages = document.createElement('div');
@@ -66,7 +72,7 @@ export const setupKeyboardToolbar = (
   const dots = document.createElement('div');
   dots.className = 'keyboard-dots';
   pager.append(pages, dots);
-  toolbar.append(fixed, pager);
+  toolbar.append(pager);
   const updateDots = () => {
     if (!pages.clientWidth) return;
     pageIndex = Math.round(pages.scrollLeft / pages.clientWidth);
@@ -77,7 +83,7 @@ export const setupKeyboardToolbar = (
   const layout = () => {
     const width = pages.clientWidth;
     if (!width) return;
-    const nextColumns = Math.max(1, Math.floor((width + 4) / 48));
+    const nextColumns = Math.max(1, Math.floor((width + 4) / 56));
     if (nextColumns !== columns) {
       columns = nextColumns;
       pages.replaceChildren();
@@ -92,17 +98,7 @@ export const setupKeyboardToolbar = (
       groups.forEach((group, index) => {
         const page = document.createElement('div');
         page.className = 'keyboard-page';
-        group.forEach((key) =>
-          page.append(
-            makeKey(key, () => {
-              editor.dispatch(editor.state.replaceSelection(key), {
-                scrollIntoView: true,
-                userEvent: 'input.type',
-              });
-              editor.focus();
-            }),
-          ),
-        );
+        page.append(...group);
         pages.append(page);
         dots.append(
           makeKey(
