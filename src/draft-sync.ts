@@ -15,6 +15,7 @@ export class DraftSync {
   private running = false;
   private conflict = false;
   private storageFailed = false;
+  private shared = true;
   private send?: (args: SaveArgs) => Promise<SaveResult>;
   status: DraftStatus = 'local';
 
@@ -35,6 +36,8 @@ export class DraftSync {
   get source() { return this.local.source; }
   get cloud() { return this.remote; }
   get hasConflict() { return this.conflict; }
+  // Named studies sync independently; this legacy channel is only for the unnamed draft.
+  setShared(shared: boolean) { this.shared = shared; }
 
   private emit(status: DraftStatus) {
     this.status = this.storageFailed ? 'storage-error' : status;
@@ -51,7 +54,7 @@ export class DraftSync {
     this.local.source = source;
     this.local.hasDraft = true;
     this.persist();
-    this.emit(this.conflict ? 'conflict' : this.connected ? 'pending' : 'local');
+    this.emit(this.shared && this.conflict ? 'conflict' : this.shared && this.connected ? 'pending' : 'local');
   }
   connect(owner: string, send: (args: SaveArgs) => Promise<SaveResult>) {
     this.generation++;
@@ -80,7 +83,7 @@ export class DraftSync {
     this.remote = remote;
     this.ready = true;
     // The subscription may precede the mutation response; let that response establish the base.
-    if (this.running) return;
+    if (this.running || !this.shared) return;
     this.reconcile();
   }
   private reconcile() {
@@ -109,7 +112,7 @@ export class DraftSync {
     }
   }
   async flush() {
-    if (!this.connected || !this.ready || this.running || this.conflict || !this.send || !this.local.hasDraft) return;
+    if (!this.shared || !this.connected || !this.ready || this.running || this.conflict || !this.send || !this.local.hasDraft) return;
     if (this.local.source === this.local.base?.source) return;
     if (this.local.source.length > 200_000) { this.emit('error'); return; }
     const generation = this.generation;
@@ -131,7 +134,7 @@ export class DraftSync {
     } finally {
       if (generation === this.generation) {
         this.running = false;
-        if (this.remote && this.remote.revision > (this.local.base?.revision ?? 0)) this.reconcile();
+        if (this.shared && this.remote && this.remote.revision > (this.local.base?.revision ?? 0)) this.reconcile();
         if (this.status === 'pending') void this.flush();
       }
     }

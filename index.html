@@ -11,6 +11,9 @@
     <main id="app">
       <header class="app-header">
         <div class="brand">
+          <button id="toggle-library" class="quiet-button icon-button" title="Meus códigos" aria-label="Meus códigos" aria-expanded="false" aria-controls="study-library">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 9h18"/></svg>
+          </button>
           <img src="./icon.svg" alt="" /><span>TypeScript <strong>Pad</strong></span>
         </div>
         <div class="header-actions">
@@ -39,11 +42,34 @@
           </div>
         </div>
       </header>
+      <div class="studio">
+        <button id="library-backdrop" aria-label="Fechar meus códigos" hidden></button>
+        <aside id="study-library" class="study-library" aria-labelledby="library-title" hidden>
+          <header class="library-heading">
+            <div><span class="eyebrow">SEU CADERNO DE ESTUDOS</span><h1 id="library-title">Meus códigos <span id="file-count">0</span></h1></div>
+            <button id="close-library" class="console-button icon-button" aria-label="Fechar meus códigos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+          </header>
+          <button id="new-file" class="new-file"><span aria-hidden="true">+</span> Novo código</button>
+          <div class="library-tools">
+            <label class="search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="file-search" type="search" placeholder="Buscar por nome" aria-label="Buscar códigos por nome" autocomplete="off" /></label>
+            <div class="library-sort"><label for="file-order">Ordenar por</label><select id="file-order"><option value="recent">Mais recentes</option><option value="oldest">Data de criação</option><option value="name">Nome · A–Z</option></select></div>
+          </div>
+          <div id="file-list" class="file-list" aria-label="Códigos salvos"></div>
+          <p id="library-warning" class="library-warning" role="alert" hidden></p>
+          <footer class="library-footer">
+            <button id="export-all" class="quiet-button export-all" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg> Exportar todos <span>.zip</span></button>
+            <p id="library-sync-status" role="status">Salvos neste dispositivo. Entre na sua conta para sincronizar.</p>
+          </footer>
+        </aside>
       <section class="workspace output-collapsed" aria-label="Área de trabalho">
         <section class="editor-pane" aria-label="Editor TypeScript">
           <header class="pane-header">
-            <span class="file-label"><b>TS</b> main.ts</span
-            ><button id="save-status" class="text-button" aria-live="polite">Salvo no dispositivo</button>
+            <div class="document-identity">
+              <button id="file-name" class="file-label" title="Dar um nome ao código"><b>TS</b><span id="current-file-name">Rascunho</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6ZM14 5l5 5"/></svg></button>
+              <button id="save-status" class="text-button" aria-live="polite">Salvo no dispositivo</button>
+            </div>
+            <button id="save-file" class="quiet-button save-file" title="Salvar código (Ctrl/Cmd + S)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg><span>Salvar</span></button>
+            <button id="export-file" class="console-button icon-button" title="Exportar código .ts" aria-label="Exportar código .ts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button>
             <button
               id="toggle-output"
               class="console-button icon-button"
@@ -76,12 +102,25 @@
           </div>
         </section>
       </section>
+      </div>
       <footer class="status-bar">
         <span id="compiler-version">TypeScript 6.0.3</span
         ><span id="run-status" role="status">Pronto</span><span id="cursor-position">Ln 1, Col 1</span><span>Execução local</span>
       </footer>
       <div id="keyboard-toolbar" role="toolbar" aria-label="Atalhos de código" hidden></div>
     </main>
+    <div id="library-notice" class="library-notice" role="status" hidden></div>
+    <dialog id="name-dialog" class="name-dialog" aria-labelledby="name-dialog-title">
+      <form id="name-form">
+        <div class="dialog-header"><div><span class="eyebrow">UM ESTUDO DE CADA VEZ</span><h2 id="name-dialog-title">Guardar código</h2></div><button id="cancel-name" type="button" class="console-button icon-button" aria-label="Cancelar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+        <p>Dê um nome para encontrar este estudo depois.<br />A data é registrada automaticamente.</p>
+        <label for="study-name">Nome do código</label>
+        <div class="name-input"><input id="study-name" required maxlength="100" placeholder="Ex.: Arrays e map" autocomplete="off" /><span>.ts</span></div>
+        <p class="name-hint">Depois de salvar, suas alterações são guardadas automaticamente.</p>
+        <p id="name-error" class="library-warning" role="alert" hidden></p>
+        <div class="name-actions"><button id="cancel-name-secondary" type="button" class="quiet-button">Cancelar</button><button class="new-file" type="submit">Salvar código</button></div>
+      </form>
+    </dialog>
     <dialog id="conflict-dialog" aria-labelledby="conflict-title">
       <div class="dialog-header"><h2 id="conflict-title">Qual versão você quer continuar?</h2><button id="close-conflict" class="quiet-button" aria-label="Fechar">×</button></div>
       <p>O código mudou em outro dispositivo. Guardaremos uma cópia das duas versões antes de continuar.</p>

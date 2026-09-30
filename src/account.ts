@@ -2,6 +2,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { ConvexClient } from 'convex/browser';
 import { padApi, type Account, type Credentials } from './cloud-api';
 import type { DraftSync } from './draft-sync';
+import type { LibrarySync } from './library-sync';
 
 const NativeAccount = registerPlugin<{
   read(): Promise<{ token: string | null }>;
@@ -12,7 +13,7 @@ const native = Capacitor.isNativePlatform();
 const convexUrl: string | undefined = import.meta.env.VITE_CONVEX_URL;
 const courseUrl: string | undefined = import.meta.env.VITE_COURSE_URL;
 
-export function setupAccount(sync: DraftSync) {
+export function setupAccount(sync: DraftSync, library: LibrarySync) {
   const button = document.querySelector<HTMLButtonElement>('#account-button')!;
   const panel = document.querySelector<HTMLElement>('#account-panel')!;
   const title = document.querySelector<HTMLElement>('#account-name')!;
@@ -25,6 +26,7 @@ export function setupAccount(sync: DraftSync) {
   let token: string | undefined;
   let unsubscribeSession: (() => void) | undefined;
   let unsubscribeDraft: (() => void) | undefined;
+  let unsubscribeFiles: (() => void) | undefined;
   let pairing = false;
   let pairingCode = '';
   let pairingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -35,7 +37,7 @@ export function setupAccount(sync: DraftSync) {
     button.setAttribute('aria-label', account ? `Perfil de ${account.name}` : 'Entrar para sincronizar');
     button.title = account ? `Perfil de ${account.name}` : 'Entrar para sincronizar';
     title.textContent = account?.name ?? 'Seu código, em qualquer tela';
-    message.textContent = account ? 'Rascunho conectado à sua conta.' : 'Entre para continuar no computador ou no tablet. Sem conta, seu código fica neste dispositivo.';
+    message.textContent = account ? 'Sua biblioteca e seu rascunho sincronizam com a conta. Você também pode estudar offline e exportar os arquivos.' : 'Entre para acessar todos os seus códigos no computador e no tablet. Sem conta, eles ficam neste dispositivo.';
     if (pairing) message.textContent = `Confirme o código ${pairingCode} no navegador e volte ao aplicativo.`;
     action.textContent = account ? 'Sair deste dispositivo' : pairing ? 'Cancelar entrada' : 'Entrar e sincronizar';
     retry.hidden = !account;
@@ -50,7 +52,7 @@ export function setupAccount(sync: DraftSync) {
   document.addEventListener('pointerdown', event => {
     if (event.target instanceof Node && !panel.contains(event.target) && !button.contains(event.target)) closePanel();
   });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') { closePanel(); button.focus(); } });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) { closePanel(); button.focus(); } });
   if (native) devicesLink.addEventListener('click', event => {
     event.preventDefault();
     void NativeAccount.open({ url: devicesLink.href }).catch(() => { message.textContent = 'Não foi possível abrir o navegador.'; });
@@ -61,12 +63,20 @@ export function setupAccount(sync: DraftSync) {
     if (next?.owner === account?.owner && account && next) return;
     unsubscribeDraft?.();
     unsubscribeDraft = undefined;
+    unsubscribeFiles?.();
+    unsubscribeFiles = undefined;
     account = next;
-    if (!next || !client) { sync.disconnect(); render(); return; }
+    if (!next || !client) { sync.disconnect(); library.disconnect(); render(); return; }
     pairing = false;
     clearTimeout(pairingTimer);
     const connection = client;
     const auth = credentials();
+    library.connect(next.owner, {
+      list: () => connection.query(padApi.files, auth),
+      get: id => connection.query(padApi.file, { ...auth, id }),
+      save: args => connection.mutation(padApi.saveFile, { ...args, ...auth }),
+    });
+    unsubscribeFiles = connection.onUpdate(padApi.files, auth, files => library.receive(files), () => library.fail());
     sync.connect(next.owner, args => connection.mutation(padApi.save, { ...args, ...auth }));
     unsubscribeDraft = connection.onUpdate(padApi.get, auth, draft => {
       sync.receive(draft);
@@ -151,10 +161,10 @@ export function setupAccount(sync: DraftSync) {
     } catch { showError(); }
     finally { action.disabled = false; }
   })(); });
-  retry.addEventListener('click', () => { void sync.flush(); });
+  retry.addEventListener('click', () => { void sync.flush(); void library.refresh(); });
   const resume = () => {
     if (document.hidden) return;
-    if (account) void sync.flush();
+    if (account) { void sync.flush(); void library.refresh(); }
     if (native && token) watchSession();
   };
   window.addEventListener('online', resume);

@@ -4,7 +4,7 @@ An open-source, offline playground for writing, running, and experimenting with
 **TypeScript on Android**. An editor and console
 in a simple interface designed for on-screen keyboards on tablets.
 
-No ads or account required. Optional sign-in syncs one draft with the course website.
+No ads or account required. Optional sign-in syncs your study library and draft with the course website.
 Built with Capacitor 8, CodeMirror 6, and
 **TypeScript 6.0.3**, with the editor, compiler, and type libraries bundled in the APK.
 
@@ -18,7 +18,12 @@ Built with Capacitor 8, CodeMirror 6, and
   without running the code. Hover or tap an underline to read the explanation and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
-- Draft automatically saved on the device.
+- Study library with names, creation and modification dates, search, and sorting.
+- Automatic saving of the current draft and named studies on the device, with optional account sync. Switching
+  studies preserves unnamed work and starts a separate undo history.
+- Rename a study by clicking its name; Ctrl/Cmd+S saves or names the current code.
+- Export one dated `.ts` file or all studies in a `.zip`, including files with duplicate
+  names. Android uses the system document picker; the web build downloads the file.
 - Swipeable toolbar above the Android keyboard: brackets and punctuation on the first
   page, indentation, formatting, Run/Stop, and operators on the second. Narrow screens
   split these groups into more pages to keep the touch targets comfortable.
@@ -27,7 +32,7 @@ Built with Capacitor 8, CodeMirror 6, and
 
 One TypeScript file at a time, with strict mode enabled. Type errors prevent execution.
 The console displays logs; it is not a command-line terminal. Node.js, npm packages,
-import/export, the DOM, and file management are not supported.
+module imports/exports, the DOM, folders, and multi-file programs are not supported.
 
 Code runs in a disposable Web Worker inside an opaque-origin sandboxed iframe,
 without access to the application's storage, login session, DOM, network, or native bridge.
@@ -38,12 +43,18 @@ Compilation has a separate 30-second timeout.
 Starting another run, pressing Stop, or moving the app to the background terminates
 the previous worker. Up to 500 log entries are displayed per run.
 
-Drafts use the WebView's local storage. Updates that keep the same app ID and signing
-key preserve the draft; uninstalling the app or clearing its data deletes it.
+Drafts and the study library use the WebView's local storage. Updates that keep the same app ID and signing
+key preserve the files; uninstalling the app or clearing its data deletes them.
+Export studies to keep a separate copy. Signing in syncs all study files, including
+names and dates, with the account. Local files created before sign-in are uploaded
+without discarding them. Files already bound to another account are never uploaded
+to the current one. Signing out retains the local copies.
+Concurrent edits create a “(conflito)” copy, preserving both versions. Remote changes
+never replace an editor buffer that could not be saved locally.
 
 ## Optional account and synchronization
 
-The profile button connects a draft; it never gates the editor or compiler.
+The profile button connects the library and unnamed draft; it never gates the editor or compiler.
 The web build at `/pad/` uses the course's WorkOS session. In Android, sign-in opens the
 course in the system browser: compare the eight-character code, approve the device,
 and return to the app. This uses the existing login without another OAuth application.
@@ -53,9 +64,13 @@ The credential is encrypted with Android Keystore, excluded from backups, valid 
 
 Local drafts, including the original `typescript-pad:source`, survive the update.
 Edits persist locally immediately and sync after a short pause. Offline edits wait
-for reconnection; different edits on two devices require a choice instead of a silent
-overwrite. Both versions are kept locally before resolving a conflict; the profile
-menu can export those recovery copies. Cloud drafts are limited to 200,000 characters.
+for reconnection. Each named study has its own optimistic revision; conflicts retain
+the remote version and create a local copy which also syncs to the account. The
+subscription sends only IDs/versions, and downloads code only when a file changes.
+The unnamed draft keeps the existing explicit conflict-resolution dialog and recovery
+exports. Named studies do not replace that shared draft when opened or edited.
+Cloud drafts and individual study files are limited to 200,000 characters; a file
+above that limit stays local and does not prevent other files from syncing.
 Signing out preserves the local code. Offline Android sign-out removes the local
 credential; remote revocation can also be performed from the course.
 
@@ -98,7 +113,10 @@ adb -s SERIAL shell am start -n com.gabrielalonso.typescriptpad/.MainActivity
 
 ## Project structure
 
-- `src/main.ts`: interface, draft persistence, logs, and execution lifecycle.
+- `src/main.ts`: editor, draft sync, logs, and execution lifecycle.
+- `src/study-library.ts` / `library-ui.ts`: durable study files and the responsive library.
+- `src/library-sync.ts`: account sync, offline revisions, and conflict copies per study.
+- `src/export-files.ts`: dated filenames, ZIP export, and Android document picker bridge.
 - `src/compiler.ts` / `compiler.worker.ts`: type checking and offline compilation.
 - `src/live-diagnostics.ts` / `diagnostics-client.ts`: live errors, touch explanations,
   and background checks that keep only the newest queued draft.
@@ -114,7 +132,9 @@ Compilation happens on the device, without a remote service or CDN downloads.
 ## Verification
 
 `npm test` covers compilation, formatting, offline standard libraries, type and syntax errors,
-file scope, await, module restrictions, and log formatting. The interface should
+file scope, await, module restrictions, log formatting, file persistence and recovery,
+search/sorting, and ZIP compatibility (against a reference archive created with Python's
+standard `zipfile` implementation; Python is not needed to run the tests). The interface should
 also be checked in a browser and on a tablet, especially text selection, the
 on-screen keyboard, swiping, and rotation.
 
