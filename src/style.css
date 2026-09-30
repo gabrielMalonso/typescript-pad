@@ -153,30 +153,25 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   min-height: 0;
   flex: 1;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(130px, 32%);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 38%);
+  grid-template-rows: minmax(0, 1fr);
 }
 .workspace.output-collapsed {
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
 }
-#toggle-output {
-  display: grid;
-  place-items: center;
-  min-width: 40px;
-  min-height: 36px;
+.console-button {
+  width: 28px;
+  min-width: 28px;
+  height: 32px;
   flex-shrink: 0;
-  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
 }
-#toggle-output svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-#toggle-output[aria-expanded='true'] svg {
-  transform: rotate(180deg);
+.console-button:hover {
+  color: #e6edf3;
+  background: #21262d;
 }
 .editor-pane,
 .output-pane {
@@ -189,14 +184,16 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   display: flex;
   align-items: center;
   gap: 16px;
+  height: 42px;
   min-height: 42px;
   padding: 0 20px;
+  border-bottom: 1px solid #21262d;
   flex-shrink: 0;
   font-size: 12px;
   color: var(--muted);
 }
 .editor-pane > .pane-header {
-  justify-content: space-between;
+  padding-right: 12px;
 }
 .file-label {
   color: #e6edf3;
@@ -209,66 +206,52 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   padding-right: 8px;
 }
 #save-status {
+  margin-left: auto;
+  min-width: 0;
   font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 #editor {
   flex: 1;
   min-height: 0;
 }
 .output-pane {
-  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
   background: #0d1117;
 }
 .output-header {
-  min-height: 48px;
-  gap: 12px;
-  background: #161b22;
-  border-bottom: 1px solid #21262d;
+  gap: 8px;
+  padding: 0 12px;
 }
-.output-tabs {
+.console-title {
+  flex: 1;
   display: flex;
-  align-self: stretch;
-  gap: 22px;
-}
-.output-tabs button {
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 0;
-  color: #8b949e;
-  font-size: 12px;
-}
-.output-tabs button[aria-selected='true'] {
+  align-items: center;
+  gap: 4px;
   color: #e6edf3;
-  border-bottom-color: #f2cc60;
+}
+#clear {
+  min-height: 32px;
+  font-size: 11px;
 }
 #log-count {
   background: #30363d;
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 10px;
-  margin-left: 4px;
 }
 #run-status {
-  margin-left: auto;
-  font: 11px monospace;
+  min-width: 0;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
 }
-.small-button {
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: 11px;
-}
-#console-panel,
-#js-panel {
+#console-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-}
-#javascript {
-  height: 100%;
 }
 #console {
   padding: 8px 20px;
@@ -449,8 +432,12 @@ button.log-row {
     padding: 0 12px;
     gap: 8px;
   }
-  .output-tabs {
-    gap: 12px;
+  .output-header {
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .editor-pane > .pane-header {
+    padding-right: 8px;
   }
   #run-status {
     font-size: 10px;
@@ -469,13 +456,8 @@ button.log-row {
   .app-header {
     height: 48px;
   }
-  .editor-pane > .pane-header {
-    min-height: 30px;
-  }
-  .workspace {
-    grid-template-rows: minmax(0, 1fr) minmax(100px, 28%);
-  }
-  .output-header {
-    min-height: 40px;
+  .pane-header {
+    height: 36px;
+    min-height: 36px;
   }
 }

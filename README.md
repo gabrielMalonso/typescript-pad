@@ -1,7 +1,7 @@
 # TypeScript Pad — TypeScript
 
 An open-source, offline playground for writing, running, and experimenting with
-**TypeScript on Android**. An editor, console, and compiled JavaScript viewer
+**TypeScript on Android**. An editor and console
 in a simple interface designed for on-screen keyboards on tablets.
 
 No ads or account required. Optional sign-in syncs one draft with the course website.
@@ -13,7 +13,7 @@ Built with Capacitor 8, CodeMirror 6, and
 - GitHub Dark-based theme and JetBrains Mono font.
 - Icon actions for formatting, copying, and running or stopping code.
 - On-demand Prettier formatting that preserves the cursor and stays out of the way while typing.
-- Collapsible Console/JavaScript panel that remembers its visibility setting.
+- Collapsible console on the right, with aligned editor and console headers. Open and close controls share the same top-right position; visibility is remembered.
 - Type and syntax errors highlighted automatically after a short pause in typing,
   without running the code. Hover or tap an underline to read the explanation and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
