@@ -131,7 +131,7 @@ const renderOutput = () => {
   toggle.setAttribute('aria-expanded', String(outputExpanded));
   element('close-output').setAttribute('aria-expanded', String(outputExpanded));
   toggle.hidden = outputExpanded;
-  consolePanel.hidden = !outputExpanded;
+  consolePanel.inert = !outputExpanded;
   editor.requestMeasure();
 };
 const setOutputExpanded = (expanded: boolean) => {

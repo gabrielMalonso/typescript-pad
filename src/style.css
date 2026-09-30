@@ -155,9 +155,10 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 38%);
   grid-template-rows: minmax(0, 1fr);
+  transition: grid-template-columns 180ms ease-in-out;
 }
 .workspace.output-collapsed {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0%);
 }
 .console-button {
   width: 28px;
@@ -218,8 +219,21 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   min-height: 0;
 }
 .output-pane {
-  border-left: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: inset 1px 0 var(--border);
   background: #0d1117;
+  visibility: visible;
+  transition: visibility 0s;
+}
+.workspace.output-collapsed .output-pane {
+  visibility: hidden;
+  transition-delay: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace,
+  .workspace.output-collapsed .output-pane {
+    transition: none;
+  }
 }
 .output-header {
   gap: 8px;
