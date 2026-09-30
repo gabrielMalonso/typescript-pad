@@ -218,13 +218,13 @@ const run = () => {
     // Keep async logs alive for a bounded time. Busy loops never block the UI.
     deadline = window.setTimeout(() => {
       if (phase === 'running') {
-        appendLog('warn', 'Execução interrompida após 30 segundos.');
+        appendLog('warn', 'Execução interrompida após 5 segundos.');
         stopExecution('Limite de tempo');
       } else {
         const label = runStatus.textContent ?? 'Pronto';
         stopExecution(label);
       }
-    }, 30_000);
+    }, 5_000);
   };
   compiler.postMessage({ id, source, kind: 'compile' } satisfies CompilerRequest);
   deadline = window.setTimeout(() => {

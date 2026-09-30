@@ -32,7 +32,8 @@ Code runs in a disposable Web Worker inside an opaque-origin sandboxed iframe,
 without access to the application's storage, login session, DOM, network, or native bridge.
 This is a personal playground, not a service for executing hostile programs.
 Promises, top-level await, timers, and other Web Worker APIs
-are supported. Each run is limited to 30 seconds, including asynchronous tasks.
+are supported. Each run is limited to 5 seconds, including asynchronous tasks.
+Compilation has a separate 30-second timeout.
 Starting another run, pressing Stop, or moving the app to the background terminates
 the previous worker. Up to 500 log entries are displayed per run.
 
