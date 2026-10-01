@@ -234,7 +234,7 @@ const renderSaveStatus = () => {
   saveStatus.hidden = !(
     Boolean(library?.failed) || (library?.hasActiveFile
       ? library.sync.status === 'storage-error' || library.sync.status === 'error'
-      : sync.hasConflict || sync.status === 'storage-error')
+      : sync.hasConflict || sync.status === 'storage-error' || sync.status === 'error')
   );
 };
 const sync = new DraftSync(localStorage, initialSource, () => {

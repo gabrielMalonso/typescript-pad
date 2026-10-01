@@ -118,6 +118,19 @@ export class LibrarySync {
     this.versions.set(remote.id, Math.max(remote.version, this.versions.get(remote.id) ?? 0));
   }
 
+  private preserveConflict(file: StudyFile, owner: string): StudyFile {
+    const existingCopy = this.local(() => this.library.read(file.revision));
+    const copy: StudyFile = {
+      ...file,
+      id: existingCopy && existingCopy.source !== file.source ? crypto.randomUUID() : file.revision,
+      name: `${fileName(file.name)} (conflito)`,
+      sync: { owner, version: 0, revision: null },
+    };
+    // Persist the copy before advancing the checkpoint or replacing the original.
+    if (!existingCopy || copy.id !== existingCopy.id) this.local(() => this.library.write(copy));
+    return copy;
+  }
+
   private merge(remote: CloudStudyFile, owner: string) {
     // A failed autosave can leave newer text only in the editor/draft. Preserve it first.
     const active = this.library.active;
@@ -127,11 +140,13 @@ export class LibrarySync {
     const local = this.local(() => this.library.read(remote.id));
     if (local?.sync && local.sync.owner !== owner) throw new Error('Arquivo de outra conta.');
     if (local?.sync && local.sync.version >= remote.version) return;
-    // A pending deletion follows newer remote revisions until acknowledged.
+    // Keep concurrent remote edits before rebasing a pending deletion.
     if (local?.deletedAt !== undefined && remote.deletedAt === undefined) {
+      this.preserveConflict(this.checkpoint(remote, owner), owner);
       this.local(() => this.library.write({ ...local, sync: this.checkpoint(remote, owner).sync }));
       this.remember(remote);
       this.requested = true;
+      this.emit('pending', true, true);
       return;
     }
     let conflict = false;
@@ -144,18 +159,7 @@ export class LibrarySync {
         local.name !== remote.name ||
         remote.deletedAt !== undefined)
     ) {
-      // Write the local copy first. If storage fills up, the original is never replaced.
-      const existingCopy = this.local(() => this.library.read(local.revision));
-      const copy: StudyFile = {
-        ...local,
-        id:
-          existingCopy && existingCopy.source !== local.source
-            ? crypto.randomUUID()
-            : local.revision,
-        name: `${fileName(local.name)} (conflito)`,
-        sync: { owner, version: 0, revision: null },
-      };
-      if (!existingCopy || copy.id !== existingCopy.id) this.local(() => this.library.write(copy));
+      const copy = this.preserveConflict(local, owner);
       if (this.library.active?.id === local.id) this.local(() => this.library.open(copy.id));
       this.requested = true;
       conflict = true;
