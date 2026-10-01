@@ -20,8 +20,9 @@ Built with Capacitor 8, CodeMirror 6, and
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
 - Saved studies with on-demand search, sorting, and a per-file menu to rename or delete.
   Deletion syncs across updated devices after confirmation; concurrent offline edits are kept as conflict copies.
-- Automatic saving of the current draft and named studies on the device, with optional account sync. Switching
-  studies preserves unnamed work and starts a separate undo history.
+- Typing in a new block automatically creates a study named “Sem título” plus a short ID. Every edit is saved
+  on the device, with optional account sync; naming the file is optional. Empty new blocks
+  do not create files. Switching studies preserves work and starts a separate undo history.
 - Rename a study by clicking its name; Ctrl/Cmd+S saves or names the current code.
 - Export one dated `.ts` file or all studies in a `.zip`, including files with duplicate
   names. Android uses the system document picker; the web build downloads the file.

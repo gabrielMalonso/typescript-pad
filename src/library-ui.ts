@@ -69,10 +69,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
         renderIdentity();
         renderList();
       }
-      if (conflict)
-        inform(
-          'Este estudo mudou nos dois dispositivos. Guardamos sua versão em uma cópia “(conflito)”.',
-        );
+      if (conflict) inform('Edições em conflito. Sua versão foi salva em uma cópia.');
       editor.statusChanged();
     },
     editor.source,
@@ -89,7 +86,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
   const reportFailure = () => {
     failed = true;
     editor.statusChanged();
-    inform('Não foi possível guardar o arquivo. Seu código continua no editor; exporte uma cópia.');
+    inform('Não foi possível salvar. Exporte uma cópia.');
   };
   const renderIdentity = () => {
     get('current-file-name').textContent = library.active
@@ -258,6 +255,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
     try {
       const unnamed = !library.active && Boolean(editor.source().trim());
       library.preserve(editor.source());
+      const preservedName = library.active?.name;
       library.detach();
       editor.replace('');
       failed = false;
@@ -266,8 +264,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
       renderList();
       editor.statusChanged();
       if (narrow.matches) setOpen(false);
-      if (unnamed)
-        inform('O código anterior foi guardado como “Sem título”. Você pode renomeá-lo depois.');
+      if (unnamed) inform(`Rascunho salvo como “${preservedName}”.`);
     } catch {
       reportFailure();
     }
@@ -315,10 +312,9 @@ export function setupStudyLibrary(editor: EditorBridge) {
       renderIdentity();
       renderList();
       editor.statusChanged();
-      inform('Código salvo.');
+      inform(namingId ? 'Código renomeado.' : 'Código salvo.');
     } catch {
-      get('name-error').textContent =
-        'Não foi possível salvar. Seu código continua no editor; exporte uma cópia.';
+      get('name-error').textContent = 'Não foi possível salvar. Exporte uma cópia.';
       get('name-error').hidden = false;
       failed = true;
       editor.statusChanged();
@@ -332,7 +328,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
     actions.hidePopover();
     if (!actionFile) return;
     deletingId = actionFile.id;
-    get('delete-description').textContent = `Excluir “${actionFile.name}.ts”?`;
+    get('delete-title').textContent = `Excluir “${actionFile.name}.ts”?`;
     get('delete-error').hidden = true;
     deleteDialog.showModal();
   });
@@ -417,16 +413,21 @@ export function setupStudyLibrary(editor: EditorBridge) {
       editor.statusChanged();
     },
     edit(source: string) {
-      if (!library.active) return;
+      if (!library.active && !source.trim()) return;
       try {
-        const id = library.active.id;
-        library.save(source);
-        if (library.active.id !== id)
-          inform('Este estudo mudou em outra aba. Suas alterações foram guardadas em uma cópia.');
+        const id = library.active?.id;
+        const saved = library.save(source);
+        if (id && saved.id !== id)
+          inform('Edições em conflito. Sua versão foi salva em uma cópia.');
         failed = false;
         renderIdentity();
         clearTimeout(listTimer);
-        listTimer = window.setTimeout(renderList, 500);
+        if (!id) {
+          search.value = '';
+          renderList();
+        } else {
+          listTimer = window.setTimeout(renderList, 500);
+        }
       } catch {
         failed = true;
       }

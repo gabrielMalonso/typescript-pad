@@ -20,6 +20,28 @@ function memory(): Storage {
 }
 
 describe('study library', () => {
+  it('keeps each automatic file and its generated name across edits, reloads and renaming', () => {
+    const store = memory();
+    const library = new StudyLibrary(() => store, '');
+    const first = library.save('const a = 1;');
+    expect(first.name).toBe(`Sem título ${first.id.slice(0, 8)}`);
+    expect(library.save('const a = 2;')).toMatchObject({ id: first.id, name: first.name });
+
+    const restored = new StudyLibrary(() => store, 'const a = 2;');
+    expect(restored.active?.id).toBe(first.id);
+    // Clearing an existing file still autosaves it without creating another file.
+    expect(restored.save('')).toMatchObject({ id: first.id, name: first.name, source: '' });
+    restored.rename(first.id, 'Arrays');
+    expect(restored.save('const items = [];')).toMatchObject({ id: first.id, name: 'Arrays' });
+
+    restored.detach();
+    const second = restored.save('const b = 1;');
+    expect(second.name).toBe(`Sem título ${second.id.slice(0, 8)}`);
+    expect(second.name).not.toBe(first.name);
+    expect(restored.list()).toHaveLength(2);
+    expect(restored.read(first.id)).toMatchObject({ name: 'Arrays', source: 'const items = [];' });
+  });
+
   it('keeps the original creation date, autosaves edits and restores the matching draft', () => {
     const store = memory();
     const library = new StudyLibrary(() => store, '');

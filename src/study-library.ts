@@ -149,16 +149,18 @@ export class StudyLibrary {
     return file;
   }
 
-  save(source: string, name = this.active?.name ?? 'Sem título'): StudyFile {
+  save(source: string, name = this.active?.name): StudyFile {
     const previous = this.active;
-    if (previous && previous.source === source && previous.name === fileName(name)) return previous;
+    const normalizedName = name === undefined ? undefined : fileName(name);
+    if (previous && previous.source === source && previous.name === normalizedName) return previous;
     const latest = previous ? this.read(previous.id) : null;
     // Another tab may have edited this study. Keep its version and save ours as a copy.
     const conflict = previous !== null && latest?.revision !== previous.revision;
     const now = Date.now();
+    const id = previous && !conflict ? previous.id : crypto.randomUUID();
     const file: StudyFile = {
-      id: previous && !conflict ? previous.id : crypto.randomUUID(),
-      name: fileName(name) + (conflict ? ' (cópia)' : ''),
+      id,
+      name: (normalizedName ?? `Sem título ${id.slice(0, 8)}`) + (conflict ? ' (cópia)' : ''),
       source,
       createdAt: previous && !conflict ? previous.createdAt : now,
       updatedAt: now,

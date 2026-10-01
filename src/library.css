@@ -315,6 +315,9 @@ input::placeholder {
   font-weight: 550;
   letter-spacing: -0.4px;
 }
+#delete-title {
+  overflow-wrap: anywhere;
+}
 .name-dialog p {
   font-size: 13px;
 }
