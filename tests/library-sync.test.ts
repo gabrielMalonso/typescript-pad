@@ -28,6 +28,8 @@ function server(initial: CloudStudyFile[] = []) {
   const save = vi.fn(async ({ file, baseVersion }: SaveFileArgs): Promise<SaveFileResult> => {
     const current = files.get(file.id);
     if (current?.revision === file.revision) return { status: 'saved', file: current };
+    if (current?.deletedAt !== undefined)
+      return { status: file.deletedAt === undefined ? 'conflict' : 'saved', file: current };
     if ((current?.version ?? 0) !== baseVersion)
       return { status: 'conflict', file: current ?? null };
     const next = { ...file, version: baseVersion + 1 };
@@ -64,6 +66,77 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe('whole-library synchronization', () => {
+  it('propagates offline deletion after reconnect and clears an unchanged active file', async () => {
+    const remote = server([remoteFile]);
+    const first = client();
+    const second = client();
+    await connect(first, remote);
+    await connect(second, remote);
+    second.library.open(remoteFile.id);
+    first.sync.disconnect();
+    first.library.delete(remoteFile.id);
+    expect(first.library.list()).toEqual([]);
+    const restarted = client(first.storage);
+    await connect(restarted, remote);
+    await second.sync.refresh();
+    expect(second.library.list()).toEqual([]);
+    expect(second.library.active).toBeNull();
+    expect(second.changed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceChange: { previous: remoteFile.source, next: '' },
+      }),
+    );
+    expect(remote.files.get(remoteFile.id)).toMatchObject({
+      source: '',
+      deletedAt: expect.any(Number),
+    });
+    expect(restarted.sync.status).toBe('saved');
+  });
+
+  it('keeps concurrent offline edits as a new copy without resurrecting the deleted ID', async () => {
+    const remote = server([remoteFile]);
+    const deleting = client();
+    const editing = client();
+    await connect(deleting, remote);
+    await connect(editing, remote);
+    editing.library.open(remoteFile.id);
+    editing.sync.disconnect();
+    editing.library.save('offline edits');
+    deleting.library.delete(remoteFile.id);
+    await deleting.sync.flush();
+    await connect(editing, remote);
+    expect(editing.library.list()).toHaveLength(1);
+    expect(editing.library.list()[0]).toMatchObject({
+      source: 'offline edits',
+      name: 'Remoto (conflito)',
+    });
+    expect(editing.library.active?.id).not.toBe(remoteFile.id);
+    expect(remote.files.get(remoteFile.id)?.deletedAt).toBeDefined();
+    expect(editing.sync.status).toBe('saved');
+  });
+
+  it('rebases an offline deletion over a newer remote edit without restoring the file', async () => {
+    const remote = server([remoteFile]);
+    const local = client();
+    await connect(local, remote);
+    local.sync.disconnect();
+    local.library.delete(remoteFile.id);
+    remote.files.set(remoteFile.id, {
+      ...remoteFile,
+      source: 'newer',
+      revision: 'newer',
+      version: 2,
+    });
+    await connect(local, remote);
+    expect(local.library.list()).toEqual([]);
+    expect(remote.files.get(remoteFile.id)).toMatchObject({
+      source: '',
+      version: 3,
+      deletedAt: expect.any(Number),
+    });
+    expect(local.sync.status).toBe('saved');
+  });
+
   it('binds newly created files to the signed-in account before the debounce or network request', async () => {
     const local = client();
     const firstAccount = server();

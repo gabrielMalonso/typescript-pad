@@ -209,7 +209,7 @@ const run = () => {
           if (!logCount) {
             const empty = document.createElement('p');
             empty.className = 'empty-state';
-            empty.textContent = 'Executado sem logs. Use console.log() para mostrar valores.';
+            empty.textContent = 'Executado sem logs.';
             consoleView.append(empty);
           }
           break;
@@ -251,14 +251,15 @@ const renderSaveStatus = () => {
     saved: 'Sincronizado', error: 'Salvo aqui · tentar sincronizar',
     'storage-error': 'Falha ao guardar a biblioteca · exporte uma cópia',
   };
-  saveStatus.textContent = library?.failed
+  const label = library?.failed
     ? 'Falha ao salvar arquivo · exporte uma cópia'
     : library?.hasActiveFile ? libraryLabels[library.sync.status] : syncLabels[sync.status];
-  saveStatus.classList.toggle(
-    'needs-attention',
+  saveStatus.title = label;
+  saveStatus.setAttribute('aria-label', label);
+  saveStatus.hidden = !(
     Boolean(library?.failed) || (library?.hasActiveFile
       ? library.sync.status === 'storage-error' || library.sync.status === 'error'
-      : sync.hasConflict || sync.status === 'storage-error'),
+      : sync.hasConflict || sync.status === 'storage-error')
   );
 };
 const sync = new DraftSync(localStorage, initialSource, () => {

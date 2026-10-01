@@ -20,34 +20,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 26px 20px 20px;
-}
-.eyebrow {
-  font:
-    9px/1.5 'JetBrains Mono',
-    monospace;
-  color: #7e92a8;
-  letter-spacing: 1.2px;
+  padding: 14px 20px;
+  gap: 4px;
 }
 .library-heading h1 {
-  margin: 7px 0 0;
-  font-size: 21px;
+  margin: 0 auto 0 0;
+  font-size: 16px;
   font-weight: 550;
   letter-spacing: -0.6px;
-}
-#file-count {
-  display: inline-block;
-  vertical-align: middle;
-  min-width: 22px;
-  padding: 3px 6px;
-  margin-left: 4px;
-  border: 1px solid #303d4d;
-  border-radius: 5px;
-  font:
-    10px 'JetBrains Mono',
-    monospace;
-  color: #8da4be;
-  text-align: center;
 }
 .new-file {
   display: flex;
@@ -70,13 +50,12 @@
   font-size: 22px;
   font-weight: 400;
 }
-.study-library > .new-file {
-  margin: 0 20px 20px;
-}
 .library-tools {
   padding: 0 20px;
 }
 .search-field {
+  height: 40px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -84,6 +63,26 @@
   border: 1px solid #2a3543;
   background: #0d1117;
   border-radius: 6px;
+}
+.search-field:not([hidden]) {
+  animation: reveal-search 180ms ease-out;
+}
+@keyframes reveal-search {
+  from {
+    height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    height: 40px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-field:not([hidden]) {
+    animation: none;
+  }
 }
 .search-field svg,
 .export-all svg,
@@ -121,7 +120,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 17px 0 12px;
+  padding: 8px 0 12px;
   font-size: 10px;
   color: #7d8996;
 }
@@ -144,11 +143,9 @@ input::placeholder {
 .study-row {
   display: flex;
   width: 100%;
-  gap: 12px;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
   margin-bottom: 3px;
-  padding: 14px 10px;
+  padding: 0 4px 0 0;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
@@ -156,7 +153,7 @@ input::placeholder {
 .study-row:hover {
   background: #19222e;
 }
-.study-row[aria-current='true'] {
+.study-row.is-current {
   background: #192b3d;
   border-color: #2a4663;
 }
@@ -190,48 +187,31 @@ input::placeholder {
   line-height: 20px;
 }
 .study-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   display: block;
   margin-top: 4px;
   font-size: 10px;
   color: #8d9bad;
   line-height: 16px;
 }
-.study-row[aria-current='true'] .study-title {
+.study-row.is-current .study-title {
   color: #b7dbff;
-}
-.study-current {
-  color: #79c0ff;
-  font-size: 8px;
-  padding-top: 6px;
 }
 .library-empty {
   padding: 34px 18px;
   text-align: center;
 }
-.empty-file-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 52px;
-  margin: 0 auto 18px;
-  border: 1px solid #33475c;
-  border-radius: 5px 15px 5px 5px;
-  color: #789bbd;
-  font:
-    13px 'JetBrains Mono',
-    monospace;
-}
 .library-empty strong {
   font-size: 14px;
   font-weight: 500;
 }
-.library-empty p {
-  color: #8b9aac;
-  font-size: 12px;
-  line-height: 1.8;
-  margin-top: 8px;
-}
 .library-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid #242e3b;
 }
@@ -240,7 +220,7 @@ input::placeholder {
   align-items: center;
   justify-content: center;
   gap: 9px;
-  width: 100%;
+  flex: 1;
   border-color: #334253;
 }
 .export-all > span {
@@ -251,6 +231,7 @@ input::placeholder {
     monospace;
 }
 .library-footer p {
+  flex-basis: 100%;
   font-size: 10px;
   color: #8b9aac;
   line-height: 1.8;
@@ -273,9 +254,8 @@ input::placeholder {
 }
 .document-identity {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   margin-right: auto;
 }
@@ -312,22 +292,6 @@ input::placeholder {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.document-identity #save-status {
-  margin-left: 0;
-  max-width: 100%;
-  text-align: left;
-  font-size: 10px;
-}
-.save-file {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: 11px;
-  border-color: #3a536d;
-  color: #a5d2ff;
-}
 #toggle-library {
   border: 0;
   color: #92a8bf;
@@ -347,7 +311,7 @@ input::placeholder {
   box-shadow: 0 24px 90px #0008;
 }
 .name-dialog h2 {
-  margin-top: 7px;
+  margin: 0;
   font-weight: 550;
   letter-spacing: -0.4px;
 }
@@ -390,12 +354,8 @@ input::placeholder {
     12px 'JetBrains Mono',
     monospace;
 }
-.name-dialog .name-hint {
-  font-size: 11px;
-  line-height: 1.7;
-  margin: 12px 0 24px;
-}
 .name-actions {
+  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -462,12 +422,6 @@ input::placeholder {
   .editor-pane > .pane-header {
     gap: 8px;
   }
-  .save-file {
-    padding: 0 8px;
-  }
-  .save-file svg {
-    display: none;
-  }
   .status-bar {
     padding: 0 12px;
     gap: 10px;
@@ -481,12 +435,6 @@ input::placeholder {
     padding-top: 12px;
     padding-bottom: 10px;
   }
-  .study-library > .new-file {
-    margin-bottom: 10px;
-  }
-  .library-footer p {
-    display: none;
-  }
   .library-footer {
     padding-top: 10px;
     padding-bottom: 10px;
@@ -496,4 +444,57 @@ input::placeholder {
   .brand > span {
     display: none;
   }
+}
+
+.study-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 10px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+.study-more {
+  flex-shrink: 0;
+}
+.file-actions {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #161b22;
+  color: #e6edf3;
+  box-shadow: 0 8px 24px #0006;
+}
+.file-actions button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+.file-actions button:hover {
+  background: #253243;
+}
+.danger-text {
+  color: #ff9b96;
+}
+
+.library-footer .new-file {
+  padding: 0;
+  flex-shrink: 0;
+}
+
+#save-status {
+  flex-shrink: 0;
+  color: #f2cc60;
 }

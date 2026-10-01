@@ -18,7 +18,8 @@ Built with Capacitor 8, CodeMirror 6, and
   without running the code. Hover or tap an underline to read the explanation and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
-- Study library with names, creation and modification dates, search, and sorting.
+- Saved studies with on-demand search, sorting, and a per-file menu to rename or delete.
+  Deletion syncs across updated devices after confirmation; concurrent offline edits are kept as conflict copies.
 - Automatic saving of the current draft and named studies on the device, with optional account sync. Switching
   studies preserves unnamed work and starts a separate undo history.
 - Rename a study by clicking its name; Ctrl/Cmd+S saves or names the current code.
@@ -69,6 +70,9 @@ the remote version and create a local copy which also syncs to the account. The
 subscription sends only IDs/versions, and downloads code only when a file changes.
 The unnamed draft keeps the existing explicit conflict-resolution dialog and recovery
 exports. Named studies do not replace that shared draft when opened or edited.
+Deleted studies retain a small revision record with an empty source so offline devices cannot
+restore the deleted ID. The updated backend must be deployed before distributing deletion support.
+
 Cloud drafts and individual study files are limited to 200,000 characters; a file
 above that limit stays local and does not prevent other files from syncing.
 Signing out preserves the local code. Offline Android sign-out removes the local

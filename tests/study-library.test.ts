@@ -127,6 +127,47 @@ describe('study library', () => {
     ]);
   });
 
+  it('renames another study without switching the editor or changing its source', () => {
+    const memoryStore = memory();
+    const library = new StudyLibrary(() => memoryStore, '');
+    const first = library.save('first source', 'First');
+    library.detach();
+    const second = library.save('second source', 'Second');
+    library.rename(first.id, 'Renamed.ts');
+    expect(library.active?.id).toBe(second.id);
+    expect(library.read(first.id)).toMatchObject({ name: 'Renamed', source: 'first source' });
+  });
+
+  it('deletes durably without exporting or restoring the deleted study', () => {
+    const store = memory();
+    const library = new StudyLibrary(() => store, '');
+    const file = library.save('source', 'Study');
+    library.delete(file.id);
+    expect(library.active).toBeNull();
+    expect(library.list()).toEqual([]);
+    expect(library.exportFiles('')).toEqual([]);
+    expect(library.list(true)[0]).toMatchObject({
+      id: file.id,
+      source: '',
+      deletedAt: expect.any(Number),
+    });
+    expect(new StudyLibrary(() => store, '').active).toBeNull();
+    expect(() => library.open(file.id)).toThrow();
+    expect(() => library.rename(file.id, 'Revive')).toThrow();
+  });
+
+  it('keeps the active study intact if persisting its deletion fails', () => {
+    const store = memory();
+    const library = new StudyLibrary(() => store, '');
+    const file = library.save('important', 'Study');
+    vi.spyOn(store, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    expect(() => library.delete(file.id)).toThrow('quota');
+    expect(library.active).toEqual(file);
+    expect(library.list()).toEqual([file]);
+  });
+
   it('searches without accents and orders by name, creation date or last edit', () => {
     const library = new StudyLibrary(() => memory(), '');
     const file = library.save('', 'Funções 2');

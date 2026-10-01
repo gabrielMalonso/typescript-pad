@@ -127,12 +127,22 @@ export class LibrarySync {
     const local = this.local(() => this.library.read(remote.id));
     if (local?.sync && local.sync.owner !== owner) throw new Error('Arquivo de outra conta.');
     if (local?.sync && local.sync.version >= remote.version) return;
+    // A pending deletion follows newer remote revisions until acknowledged.
+    if (local?.deletedAt !== undefined && remote.deletedAt === undefined) {
+      this.local(() => this.library.write({ ...local, sync: this.checkpoint(remote, owner).sync }));
+      this.remember(remote);
+      this.requested = true;
+      return;
+    }
     let conflict = false;
     if (
       local &&
+      local.deletedAt === undefined &&
       local.revision !== remote.revision &&
       local.sync?.revision !== local.revision &&
-      (local.source !== remote.source || local.name !== remote.name)
+      (local.source !== remote.source ||
+        local.name !== remote.name ||
+        remote.deletedAt !== undefined)
     ) {
       // Write the local copy first. If storage fills up, the original is never replaced.
       const existingCopy = this.local(() => this.library.read(local.revision));
@@ -154,7 +164,7 @@ export class LibrarySync {
     this.remember(remote);
     const sourceChange =
       active?.id === remote.id &&
-      this.library.active?.id === remote.id &&
+      (this.library.active?.id === remote.id || (remote.deletedAt !== undefined && !conflict)) &&
       active.source !== remote.source
         ? { previous: active.source, next: remote.source }
         : undefined;
@@ -208,7 +218,7 @@ export class LibrarySync {
             failure = error instanceof StorageFailure ? 'storage-error' : (failure ?? 'error');
           }
         }
-        const files = this.local(() => this.library.list());
+        const files = this.local(() => this.library.list(true));
         if (this.library.unreadableFiles) failure = 'storage-error';
         for (const listed of files) {
           if (!current()) return;
