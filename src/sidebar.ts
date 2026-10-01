@@ -66,7 +66,8 @@ export function setupSidebar(layoutChanged: () => void) {
     render();
     persist();
     if (!open && hadFocus) toggle.focus();
-    if (open && narrow.matches) tabs[selected].button.focus();
+    // The tab is still sliding into view; focus must not scroll the workspace.
+    if (open && narrow.matches) tabs[selected].button.focus({ preventScroll: true });
   };
   const select = (name: SidebarTab) => {
     actions.hidePopover();
@@ -86,7 +87,7 @@ export function setupSidebar(layoutChanged: () => void) {
       else return;
       event.preventDefault();
       select(next);
-      tabs[next].button.focus();
+      tabs[next].button.focus({ preventScroll: true });
     });
   }
   toggle.addEventListener('click', () => setExpanded(!expanded));
@@ -102,7 +103,7 @@ export function setupSidebar(layoutChanged: () => void) {
   narrow.addEventListener('change', () => {
     const moveFocus = expanded && narrow.matches && editor.contains(document.activeElement);
     render();
-    if (moveFocus) tabs[selected].button.focus();
+    if (moveFocus) tabs[selected].button.focus({ preventScroll: true });
   });
   render();
   return {
