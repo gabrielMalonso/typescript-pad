@@ -456,6 +456,25 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+for (const dialog of document.querySelectorAll('dialog')) {
+  let startedOutside = false;
+  const isOutside = (event: MouseEvent) => {
+    const bounds = dialog.getBoundingClientRect();
+    return event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  };
+  // A gesture must begin and end on the backdrop; dragging text out keeps the modal open.
+  dialog.addEventListener('pointerdown', (event) => {
+    startedOutside = event.target === dialog && isOutside(event);
+  });
+  dialog.addEventListener('pointercancel', () => { startedOutside = false; });
+  dialog.addEventListener('click', (event) => {
+    const dismiss = startedOutside && event.target === dialog && isOutside(event);
+    startedOutside = false;
+    if (dismiss) dialog.close();
+  });
+}
+
 const conflictDialog = document.querySelector<HTMLDialogElement>('#conflict-dialog')!;
 const localVersion = document.querySelector<HTMLTextAreaElement>('#local-version')!;
 const cloudVersion = document.querySelector<HTMLTextAreaElement>('#cloud-version')!;
