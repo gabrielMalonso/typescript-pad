@@ -31,19 +31,13 @@ import { formatTypeScript } from './formatter';
 import { bracketPairColors } from './bracket-pair-colors';
 import { indentGuides } from './indent-guides';
 import { setupStudyLibrary } from './library-ui';
+import { setupSidebar } from './sidebar';
 
 const element = (id: string): HTMLElement => {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Elemento ausente: ${id}`);
   return node;
 };
-const outputPreferenceKey = 'typescript-pad:output-expanded';
-let outputExpanded = false;
-try {
-  outputExpanded = localStorage.getItem(outputPreferenceKey) === 'true';
-} catch {
-  // Panel visibility still works when local storage is unavailable.
-}
 const initialSource = `// Um espaço para pensar em TypeScript.
 const numeros: number[] = [1, 2, 3, 4];
 
@@ -61,7 +55,6 @@ const saveStatus = element('save-status');
 const runStatus = element('run-status');
 const runButton = element('run');
 const consoleView = element('console');
-const consolePanel = element('console-panel');
 const consoleScroll = element('console-scroll');
 const formatButton = element('format') as HTMLButtonElement;
 const playIcon =
@@ -118,7 +111,7 @@ const appendLog = (level: LogLevel, text: string, issue?: CodeIssue) => {
         selection: { anchor: Math.min(issue.from, editor.state.doc.length) },
         scrollIntoView: true,
       });
-      editor.focus();
+      focusEditor();
     });
   }
   consoleView.append(row);
@@ -126,24 +119,6 @@ const appendLog = (level: LogLevel, text: string, issue?: CodeIssue) => {
   if (nearBottom) consoleScroll.scrollTop = consoleScroll.scrollHeight;
 };
 
-const renderOutput = () => {
-  document.querySelector('.workspace')?.classList.toggle('output-collapsed', !outputExpanded);
-  const toggle = element('toggle-output');
-  toggle.setAttribute('aria-expanded', String(outputExpanded));
-  element('close-output').setAttribute('aria-expanded', String(outputExpanded));
-  toggle.hidden = outputExpanded;
-  consolePanel.inert = !outputExpanded;
-  editor.requestMeasure();
-};
-const setOutputExpanded = (expanded: boolean) => {
-  outputExpanded = expanded;
-  renderOutput();
-  try {
-    localStorage.setItem(outputPreferenceKey, String(expanded));
-  } catch {
-    // Keep the user's choice for this session even if it cannot be persisted.
-  }
-};
 const run = () => {
   stopExecution('Compilando…');
   clearConsole();
@@ -209,7 +184,7 @@ const run = () => {
           if (!logCount) {
             const empty = document.createElement('p');
             empty.className = 'empty-state';
-            empty.textContent = 'Executado sem logs. Use console.log() para mostrar valores.';
+            empty.textContent = 'Executado sem logs.';
             consoleView.append(empty);
           }
           break;
@@ -251,14 +226,15 @@ const renderSaveStatus = () => {
     saved: 'Sincronizado', error: 'Salvo aqui · tentar sincronizar',
     'storage-error': 'Falha ao guardar a biblioteca · exporte uma cópia',
   };
-  saveStatus.textContent = library?.failed
+  const label = library?.failed
     ? 'Falha ao salvar arquivo · exporte uma cópia'
     : library?.hasActiveFile ? libraryLabels[library.sync.status] : syncLabels[sync.status];
-  saveStatus.classList.toggle(
-    'needs-attention',
+  saveStatus.title = label;
+  saveStatus.setAttribute('aria-label', label);
+  saveStatus.hidden = !(
     Boolean(library?.failed) || (library?.hasActiveFile
       ? library.sync.status === 'storage-error' || library.sync.status === 'error'
-      : sync.hasConflict || sync.status === 'storage-error'),
+      : sync.hasConflict || sync.status === 'storage-error' || sync.status === 'error')
   );
 };
 const sync = new DraftSync(localStorage, initialSource, () => {
@@ -379,18 +355,11 @@ const formatEditor = async () => {
 const toolbar = setupKeyboardToolbar(element('keyboard-toolbar'), editor, runOrStop, () => {
   void formatEditor();
 });
-renderOutput();
-for (const id of ['toggle-output', 'close-output'] as const) {
-  const button = element(id);
-  button.addEventListener('pointerdown', (event) => {
-    if (editor.hasFocus) event.preventDefault();
-  });
-  button.addEventListener('click', () => {
-    const hadFocus = button === document.activeElement;
-    setOutputExpanded(id === 'toggle-output');
-    if (hadFocus) element(id === 'toggle-output' ? 'close-output' : 'toggle-output').focus();
-  });
-}
+const sidebar = setupSidebar(() => editor.requestMeasure());
+const focusEditor = () => {
+  sidebar.closeOnNarrowScreen();
+  editor.focus();
+};
 library = setupStudyLibrary({
   source: () => editor.state.doc.toString(),
   replace: (source, focus = true) => {
@@ -403,9 +372,10 @@ library = setupStudyLibrary({
     element('cursor-position').textContent = 'Ln 1, Col 1';
     sync.edit(source);
     save();
-    if (focus) editor.focus();
+    if (focus) focusEditor();
   },
   statusChanged: renderSaveStatus,
+  focus: focusEditor,
 });
 renderSaveStatus();
 setupAccount(sync, library.sync);
@@ -454,6 +424,25 @@ document.addEventListener('visibilitychange', () => {
     if (runner || phase !== 'idle') stopExecution();
   }
 });
+
+for (const dialog of document.querySelectorAll('dialog')) {
+  let startedOutside = false;
+  const isOutside = (event: MouseEvent) => {
+    const bounds = dialog.getBoundingClientRect();
+    return event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  };
+  // A gesture must begin and end on the backdrop; dragging text out keeps the modal open.
+  dialog.addEventListener('pointerdown', (event) => {
+    startedOutside = event.target === dialog && isOutside(event);
+  });
+  dialog.addEventListener('pointercancel', () => { startedOutside = false; });
+  dialog.addEventListener('click', (event) => {
+    const dismiss = startedOutside && event.target === dialog && isOutside(event);
+    startedOutside = false;
+    if (dismiss) dialog.close();
+  });
+}
 
 const conflictDialog = document.querySelector<HTMLDialogElement>('#conflict-dialog')!;
 const localVersion = document.querySelector<HTMLTextAreaElement>('#local-version')!;

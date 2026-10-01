@@ -40,7 +40,9 @@ tarefa pedir outras mudanças. Enviar esse commit para `origin/main`.
 A biblioteca usa a tabela `padFiles` e as funções `pad:files`, `pad:file` e
 `pad:saveFile` no Convex do leitor. Publicar primeiro o schema e as funções pelo
 procedimento do leitor (`npm run deploy:prepare`, após autorização de publicação),
-e depois o Pad web/APK. As funções antigas de rascunho permanecem compatíveis.
+e depois o Pad web/APK. As funções antigas de rascunho permanecem compatíveis. A exclusão sincronizada requer
+o campo opcional `deletedAt` em `padFiles` e no contrato de `pad:saveFile`; publicar essa
+atualização antes do cliente. Atualizar também os dispositivos para ocultar os registros excluídos.
 Não executar `convex dev --once` apenas para checar tipos: esse comando publica
 alterações no serviço. Para validação local, usar os testes e `tsc --noEmit -p convex`.
 

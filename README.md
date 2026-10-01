@@ -13,14 +13,18 @@ Built with Capacitor 8, CodeMirror 6, and
 - GitHub Dark-based theme and JetBrains Mono font.
 - Icon actions for formatting, copying, and running or stopping code.
 - On-demand Prettier formatting that preserves the cursor and stays out of the way while typing.
-- Collapsible console on the right, with aligned editor and console headers. Open and close controls share the same top-right position; visibility is remembered.
+- One collapsible sidebar on the right, with Console and Salvos tabs. The top-right button
+  toggles it; visibility and the selected tab are remembered. Switching tabs preserves search
+  and console output. On narrow screens, selecting a file reveals the editor again.
 - Type and syntax errors highlighted automatically after a short pause in typing,
   without running the code. Hover or tap an underline to read the explanation and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
 - Console output for arrays, objects, Map, Set, bigint, errors, and circular references.
-- Study library with names, creation and modification dates, search, and sorting.
-- Automatic saving of the current draft and named studies on the device, with optional account sync. Switching
-  studies preserves unnamed work and starts a separate undo history.
+- Saved studies with on-demand search, sorting, and a per-file menu to rename or delete.
+  Deletion syncs across updated devices after confirmation; concurrent offline edits are kept as conflict copies.
+- Typing in a new block automatically creates a study named “Sem título” plus a short ID. Every edit is saved
+  on the device, with optional account sync; naming the file is optional. Empty new blocks
+  do not create files. Switching studies preserves work and starts a separate undo history.
 - Rename a study by clicking its name; Ctrl/Cmd+S saves or names the current code.
 - Export one dated `.ts` file or all studies in a `.zip`, including files with duplicate
   names. Android uses the system document picker; the web build downloads the file.
@@ -69,6 +73,9 @@ the remote version and create a local copy which also syncs to the account. The
 subscription sends only IDs/versions, and downloads code only when a file changes.
 The unnamed draft keeps the existing explicit conflict-resolution dialog and recovery
 exports. Named studies do not replace that shared draft when opened or edited.
+Deleted studies retain a small revision record with an empty source so offline devices cannot
+restore the deleted ID. The updated backend must be deployed before distributing deletion support.
+
 Cloud drafts and individual study files are limited to 200,000 characters; a file
 above that limit stays local and does not prevent other files from syncing.
 Signing out preserves the local code. Offline Android sign-out removes the local

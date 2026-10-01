@@ -28,6 +28,8 @@ function server(initial: CloudStudyFile[] = []) {
   const save = vi.fn(async ({ file, baseVersion }: SaveFileArgs): Promise<SaveFileResult> => {
     const current = files.get(file.id);
     if (current?.revision === file.revision) return { status: 'saved', file: current };
+    if (current?.deletedAt !== undefined)
+      return { status: file.deletedAt === undefined ? 'conflict' : 'saved', file: current };
     if ((current?.version ?? 0) !== baseVersion)
       return { status: 'conflict', file: current ?? null };
     const next = { ...file, version: baseVersion + 1 };
@@ -64,6 +66,149 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe('whole-library synchronization', () => {
+  it('propagates offline deletion after reconnect and clears an unchanged active file', async () => {
+    const remote = server([remoteFile]);
+    const first = client();
+    const second = client();
+    await connect(first, remote);
+    await connect(second, remote);
+    second.library.open(remoteFile.id);
+    first.sync.disconnect();
+    first.library.delete(remoteFile.id);
+    expect(first.library.list()).toEqual([]);
+    const restarted = client(first.storage);
+    await connect(restarted, remote);
+    await second.sync.refresh();
+    expect(second.library.list()).toEqual([]);
+    expect(second.library.active).toBeNull();
+    expect(second.changed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceChange: { previous: remoteFile.source, next: '' },
+      }),
+    );
+    expect(remote.files.get(remoteFile.id)).toMatchObject({
+      source: '',
+      deletedAt: expect.any(Number),
+    });
+    expect(restarted.sync.status).toBe('saved');
+  });
+
+  it('keeps concurrent offline edits as a new copy without resurrecting the deleted ID', async () => {
+    const remote = server([remoteFile]);
+    const deleting = client();
+    const editing = client();
+    await connect(deleting, remote);
+    await connect(editing, remote);
+    editing.library.open(remoteFile.id);
+    editing.sync.disconnect();
+    editing.library.save('offline edits');
+    deleting.library.delete(remoteFile.id);
+    await deleting.sync.flush();
+    await connect(editing, remote);
+    expect(editing.library.list()).toHaveLength(1);
+    expect(editing.library.list()[0]).toMatchObject({
+      source: 'offline edits',
+      name: 'Remoto (conflito)',
+    });
+    expect(editing.library.active?.id).not.toBe(remoteFile.id);
+    expect(remote.files.get(remoteFile.id)?.deletedAt).toBeDefined();
+    expect(editing.sync.status).toBe('saved');
+  });
+
+  it('preserves a newer remote edit before rebasing an offline deletion', async () => {
+    const remote = server([remoteFile]);
+    const local = client();
+    await connect(local, remote);
+    local.sync.disconnect();
+    local.library.delete(remoteFile.id);
+    remote.files.set(remoteFile.id, {
+      ...remoteFile,
+      source: 'newer',
+      revision: 'newer',
+      version: 2,
+    });
+    await connect(local, remote);
+    expect(local.library.list()).toHaveLength(1);
+    expect(local.library.list()[0]).toMatchObject({
+      id: 'newer',
+      name: 'Remoto (conflito)',
+      source: 'newer',
+    });
+    expect(remote.files.get(remoteFile.id)).toMatchObject({
+      source: '',
+      version: 3,
+      deletedAt: expect.any(Number),
+    });
+    expect(local.sync.status).toBe('saved');
+  });
+
+  it.each(['deleting', 'editing'] as const)(
+    'keeps offline edits when the %s device reconnects first',
+    async (first) => {
+      const remote = server([remoteFile]);
+      const deleting = client();
+      const editing = client();
+      await connect(deleting, remote);
+      await connect(editing, remote);
+      editing.library.open(remoteFile.id);
+      deleting.sync.disconnect();
+      editing.sync.disconnect();
+      deleting.library.delete(remoteFile.id);
+      const edited = editing.library.save('important offline edit');
+
+      const clients = first === 'deleting' ? [deleting, editing] : [editing, deleting];
+      for (const local of clients) await connect(local, remote);
+      for (const local of clients) await local.sync.refresh();
+
+      const copy = {
+        id: edited.revision,
+        name: 'Remoto (conflito)',
+        source: 'important offline edit',
+      };
+      for (const local of clients) {
+        expect(local.library.list()).toHaveLength(1);
+        expect(local.library.list()[0]).toMatchObject(copy);
+        expect(local.sync.status).toBe('saved');
+      }
+      expect(remote.files.get(edited.revision)).toMatchObject(copy);
+      expect(remote.files.get(remoteFile.id)).toMatchObject({
+        source: '',
+        deletedAt: expect.any(Number),
+      });
+      expect(remote.files.size).toBe(2);
+    },
+  );
+
+  it('does not upload a deletion if preserving the concurrent edit fails', async () => {
+    const remote = server([remoteFile]);
+    const local = client();
+    await connect(local, remote);
+    local.sync.disconnect();
+    local.library.delete(remoteFile.id);
+    remote.files.set(remoteFile.id, {
+      ...remoteFile,
+      source: 'newer',
+      revision: 'newer',
+      version: 2,
+    });
+    const setItem = local.storage.setItem;
+    const write = vi.spyOn(local.storage, 'setItem').mockImplementation((key, value) => {
+      if (key === 'typescript-pad:file:v1:newer') throw new Error('quota');
+      setItem(key, value);
+    });
+    await connect(local, remote);
+    expect(local.sync.status).toBe('storage-error');
+    expect(remote.files.get(remoteFile.id)).toMatchObject({ source: 'newer', version: 2 });
+    expect(remote.files.get(remoteFile.id)?.deletedAt).toBeUndefined();
+
+    write.mockRestore();
+    await local.sync.refresh();
+    expect(local.library.list()).toHaveLength(1);
+    expect(remote.files.get('newer')).toMatchObject({ source: 'newer' });
+    expect(remote.files.get(remoteFile.id)?.deletedAt).toBeDefined();
+    expect(local.sync.status).toBe('saved');
+  });
+
   it('binds newly created files to the signed-in account before the debounce or network request', async () => {
     const local = client();
     const firstAccount = server();

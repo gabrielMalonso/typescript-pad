@@ -20,6 +20,28 @@ function memory(): Storage {
 }
 
 describe('study library', () => {
+  it('keeps each automatic file and its generated name across edits, reloads and renaming', () => {
+    const store = memory();
+    const library = new StudyLibrary(() => store, '');
+    const first = library.save('const a = 1;');
+    expect(first.name).toBe(`Sem título ${first.id.slice(0, 8)}`);
+    expect(library.save('const a = 2;')).toMatchObject({ id: first.id, name: first.name });
+
+    const restored = new StudyLibrary(() => store, 'const a = 2;');
+    expect(restored.active?.id).toBe(first.id);
+    // Clearing an existing file still autosaves it without creating another file.
+    expect(restored.save('')).toMatchObject({ id: first.id, name: first.name, source: '' });
+    restored.rename(first.id, 'Arrays');
+    expect(restored.save('const items = [];')).toMatchObject({ id: first.id, name: 'Arrays' });
+
+    restored.detach();
+    const second = restored.save('const b = 1;');
+    expect(second.name).toBe(`Sem título ${second.id.slice(0, 8)}`);
+    expect(second.name).not.toBe(first.name);
+    expect(restored.list()).toHaveLength(2);
+    expect(restored.read(first.id)).toMatchObject({ name: 'Arrays', source: 'const items = [];' });
+  });
+
   it('keeps the original creation date, autosaves edits and restores the matching draft', () => {
     const store = memory();
     const library = new StudyLibrary(() => store, '');
@@ -125,6 +147,47 @@ describe('study library', () => {
       'first tab',
       'second tab',
     ]);
+  });
+
+  it('renames another study without switching the editor or changing its source', () => {
+    const memoryStore = memory();
+    const library = new StudyLibrary(() => memoryStore, '');
+    const first = library.save('first source', 'First');
+    library.detach();
+    const second = library.save('second source', 'Second');
+    library.rename(first.id, 'Renamed.ts');
+    expect(library.active?.id).toBe(second.id);
+    expect(library.read(first.id)).toMatchObject({ name: 'Renamed', source: 'first source' });
+  });
+
+  it('deletes durably without exporting or restoring the deleted study', () => {
+    const store = memory();
+    const library = new StudyLibrary(() => store, '');
+    const file = library.save('source', 'Study');
+    library.delete(file.id);
+    expect(library.active).toBeNull();
+    expect(library.list()).toEqual([]);
+    expect(library.exportFiles('')).toEqual([]);
+    expect(library.list(true)[0]).toMatchObject({
+      id: file.id,
+      source: '',
+      deletedAt: expect.any(Number),
+    });
+    expect(new StudyLibrary(() => store, '').active).toBeNull();
+    expect(() => library.open(file.id)).toThrow();
+    expect(() => library.rename(file.id, 'Revive')).toThrow();
+  });
+
+  it('keeps the active study intact if persisting its deletion fails', () => {
+    const store = memory();
+    const library = new StudyLibrary(() => store, '');
+    const file = library.save('important', 'Study');
+    vi.spyOn(store, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    expect(() => library.delete(file.id)).toThrow('quota');
+    expect(library.active).toEqual(file);
+    expect(library.list()).toEqual([file]);
   });
 
   it('searches without accents and orders by name, creation date or last edit', () => {

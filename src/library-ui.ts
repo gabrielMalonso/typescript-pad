@@ -1,4 +1,4 @@
-import { StudyLibrary, selectFiles, type FileOrder } from './study-library';
+import { StudyLibrary, selectFiles, type FileOrder, type StudyFile } from './study-library';
 import { downloadName, exportDownload, studyArchive } from './export-files';
 import { LibrarySync, type LibraryStatus } from './library-sync';
 import './library.css';
@@ -7,6 +7,7 @@ type EditorBridge = {
   source: () => string;
   replace: (source: string, focus?: boolean) => void;
   statusChanged: () => void;
+  focus: () => void;
 };
 const date = new Intl.DateTimeFormat('pt-BR', {
   year: 'numeric',
@@ -23,18 +24,21 @@ export function setupStudyLibrary(editor: EditorBridge) {
     if (!node) throw new Error(`Elemento ausente: ${id}`);
     return node as T;
   };
-  const panel = get<HTMLElement>('study-library');
-  const toggle = get<HTMLButtonElement>('toggle-library');
-  const backdrop = get<HTMLButtonElement>('library-backdrop');
   const list = get<HTMLElement>('file-list');
   const search = get<HTMLInputElement>('file-search');
   const order = get<HTMLSelectElement>('file-order');
+  const searchToggle = get<HTMLButtonElement>('toggle-search');
+  const searchField = get<HTMLElement>('library-search');
   const dialog = get<HTMLDialogElement>('name-dialog');
   const name = get<HTMLInputElement>('study-name');
   const warning = get<HTMLElement>('library-warning');
   const notice = get<HTMLElement>('library-notice');
   const exportAll = get<HTMLButtonElement>('export-all');
-  const narrow = matchMedia('(max-width: 840px)');
+  const actions = get<HTMLElement>('file-actions');
+  const deleteDialog = get<HTMLDialogElement>('delete-dialog');
+  let actionFile: StudyFile | null = null;
+  let namingId: string | null = null;
+  let deletingId: string | null = null;
   let failed = false;
   let noticeTimer: number | undefined;
   let listTimer: number | undefined;
@@ -50,6 +54,8 @@ export function setupStudyLibrary(editor: EditorBridge) {
     library,
     ({ filesChanged, conflict, sourceChange }) => {
       get('library-sync-status').textContent = syncLabels[sync.status];
+      get('library-sync-status').hidden =
+        sync.status !== 'error' && sync.status !== 'storage-error';
       get('library-sync-status').classList.toggle(
         'needs-attention',
         sync.status === 'error' || sync.status === 'storage-error',
@@ -60,10 +66,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
         renderIdentity();
         renderList();
       }
-      if (conflict)
-        inform(
-          'Este estudo mudou nos dois dispositivos. Guardamos sua versão em uma cópia “(conflito)”.',
-        );
+      if (conflict) inform('Edições em conflito. Sua versão foi salva em uma cópia.');
       editor.statusChanged();
     },
     editor.source,
@@ -80,7 +83,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
   const reportFailure = () => {
     failed = true;
     editor.statusChanged();
-    inform('Não foi possível guardar o arquivo. Seu código continua no editor; exporte uma cópia.');
+    inform('Não foi possível salvar. Exporte uma cópia.');
   };
   const renderIdentity = () => {
     get('current-file-name').textContent = library.active
@@ -96,7 +99,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
     clearTimeout(listTimer);
     try {
       const files = library.list();
-      get('file-count').textContent = String(files.length);
       exportAll.disabled = files.length === 0;
       warning.hidden = library.unreadableFiles === 0;
       warning.textContent =
@@ -104,20 +106,24 @@ export function setupStudyLibrary(editor: EditorBridge) {
       const selectedOrder: FileOrder =
         order.value === 'name' || order.value === 'oldest' ? order.value : 'recent';
       const visible = selectFiles(files, search.value, selectedOrder);
+      actions.hidePopover();
       list.replaceChildren();
       if (!visible.length) {
         const empty = document.createElement('div');
         empty.className = 'library-empty';
         empty.innerHTML = files.length
-          ? '<strong>Nenhum código encontrado</strong><p>Tente buscar por outro nome.</p>'
-          : '<span class="empty-file-icon" aria-hidden="true">{ }</span><strong>Cada ideia tem seu lugar.</strong><p>Escreva no editor e toque em<br /><b>Salvar</b> para guardar seu primeiro estudo.</p>';
+          ? '<strong>Nenhum resultado</strong>'
+          : '<strong>Nenhum código salvo</strong>';
         list.append(empty);
       }
       for (const file of visible) {
-        const row = document.createElement('button');
+        const row = document.createElement('div');
         row.className = 'study-row';
-        row.setAttribute('aria-current', String(file.id === library.active?.id));
-        row.title = `${file.name}.ts\nCriado em ${date.format(file.createdAt)}\nAlterado em ${date.format(file.updatedAt)}`;
+        row.classList.toggle('is-current', file.id === library.active?.id);
+        const open = document.createElement('button');
+        open.className = 'study-open';
+        open.setAttribute('aria-current', String(file.id === library.active?.id));
+        open.title = `${file.name}.ts\nCriado em ${date.format(file.createdAt)}\nAlterado em ${date.format(file.updatedAt)}`;
         const icon = document.createElement('span');
         icon.className = 'study-icon';
         icon.textContent = 'TS';
@@ -132,17 +138,10 @@ export function setupStudyLibrary(editor: EditorBridge) {
         const lines = file.source.split('\n').length;
         meta.textContent = `${date.format(selectedOrder === 'oldest' ? file.createdAt : file.updatedAt)} · ${lines} ${lines === 1 ? 'linha' : 'linhas'}`;
         info.append(title, meta);
-        row.append(icon, info);
-        if (file.id === library.active?.id) {
-          const current = document.createElement('span');
-          current.className = 'study-current';
-          current.textContent = '●';
-          current.setAttribute('aria-label', 'Aberto');
-          row.append(current);
-        }
-        row.addEventListener('click', () => {
+        open.append(icon, info);
+        open.addEventListener('click', () => {
           if (file.id === library.active?.id) {
-            if (narrow.matches) setOpen(false);
+            editor.focus();
             return;
           }
           try {
@@ -153,11 +152,26 @@ export function setupStudyLibrary(editor: EditorBridge) {
             renderIdentity();
             renderList();
             editor.statusChanged();
-            if (narrow.matches) setOpen(false);
           } catch {
             reportFailure();
           }
         });
+        const more = document.createElement('button');
+        more.className = 'console-button icon-button study-more';
+        more.title = 'Ações do código';
+        more.setAttribute('aria-label', `Ações de ${file.name}`);
+        more.setAttribute('aria-controls', 'file-actions');
+        more.innerHTML =
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+        more.addEventListener('click', () => {
+          actionFile = file;
+          actions.showPopover();
+          const rect = more.getBoundingClientRect();
+          actions.style.left = `${Math.max(8, Math.min(rect.right - actions.offsetWidth, innerWidth - actions.offsetWidth - 8))}px`;
+          actions.style.top = `${Math.min(rect.bottom + 4, innerHeight - actions.offsetHeight - 8)}px`;
+          get('rename-file').focus();
+        });
+        row.append(open, more);
         list.append(row);
       }
     } catch {
@@ -166,54 +180,42 @@ export function setupStudyLibrary(editor: EditorBridge) {
         'Não foi possível acessar os arquivos neste dispositivo. Exporte o código aberto para guardar uma cópia.';
     }
   };
-  const setOpen = (open: boolean) => {
-    panel.hidden = !open;
-    backdrop.hidden = !open || !narrow.matches;
-    toggle.setAttribute('aria-expanded', String(open));
-    if (open) renderList();
-    // On small screens, the drawer is modal and keeps keyboard focus inside it.
-    const modal = open && narrow.matches;
-    document.querySelector<HTMLElement>('.workspace')!.inert = modal;
-    document.querySelector<HTMLElement>('.app-header')!.inert = modal;
-    document.querySelector<HTMLElement>('.status-bar')!.inert = modal;
-    if (modal) {
-      panel.setAttribute('role', 'dialog');
-      panel.setAttribute('aria-modal', 'true');
-      get('close-library').focus();
-    } else {
-      panel.removeAttribute('role');
-      panel.removeAttribute('aria-modal');
+  const setSearchOpen = (open: boolean) => {
+    searchField.inert = !open;
+    searchField.classList.toggle('is-open', open);
+    searchToggle.setAttribute('aria-expanded', String(open));
+    if (open) search.focus();
+    else {
+      search.value = '';
+      renderList();
+      searchToggle.focus();
     }
-    if (!open) toggle.focus();
   };
-  toggle.addEventListener('click', () => setOpen(Boolean(panel.hidden)));
-  get('close-library').addEventListener('click', () => setOpen(false));
-  backdrop.addEventListener('click', () => setOpen(false));
-  narrow.addEventListener('change', () => setOpen(!panel.hidden));
-  panel.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      setOpen(false);
-    }
-    if (event.key !== 'Tab' || !narrow.matches) return;
-    const items = Array.from(
-      panel.querySelectorAll<HTMLElement>('button:not(:disabled), input, select'),
-    );
-    const first = items[0];
-    const last = items.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first?.focus();
-    }
+  searchToggle.addEventListener('click', () => setSearchOpen(searchField.inert));
+  search.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    event.stopPropagation();
+    event.preventDefault();
+    setSearchOpen(false);
   });
   search.addEventListener('input', renderList);
   order.addEventListener('change', renderList);
   window.addEventListener('storage', (event) => {
     if (event.key?.startsWith('typescript-pad:file:')) {
+      try {
+        const active = library.active;
+        if (active && library.read(active.id)?.deletedAt !== undefined) {
+          if (editor.source() !== active.source) library.save(editor.source());
+          else {
+            library.detach();
+            editor.replace('', false);
+          }
+          renderIdentity();
+          editor.statusChanged();
+        }
+      } catch {
+        reportFailure();
+      }
       renderList();
       void sync.flush();
     }
@@ -223,6 +225,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
     try {
       const unnamed = !library.active && Boolean(editor.source().trim());
       library.preserve(editor.source());
+      const preservedName = library.active?.name;
       library.detach();
       editor.replace('');
       failed = false;
@@ -230,16 +233,15 @@ export function setupStudyLibrary(editor: EditorBridge) {
       renderIdentity();
       renderList();
       editor.statusChanged();
-      if (narrow.matches) setOpen(false);
-      if (unnamed)
-        inform('O código anterior foi guardado como “Sem título”. Você pode renomeá-lo depois.');
+      if (unnamed) inform(`Rascunho salvo como “${preservedName}”.`);
     } catch {
       reportFailure();
     }
   });
-  const showName = () => {
-    get('name-dialog-title').textContent = library.active ? 'Renomear código' : 'Guardar código';
-    name.value = library.active?.name ?? '';
+  const showName = (file = library.active) => {
+    namingId = file?.id ?? null;
+    get('name-dialog-title').textContent = file ? 'Renomear código' : 'Salvar código';
+    name.value = file?.name ?? '';
     get('name-error').hidden = true;
     dialog.showModal();
     name.focus();
@@ -261,9 +263,8 @@ export function setupStudyLibrary(editor: EditorBridge) {
       reportFailure();
     }
   };
-  get('file-name').addEventListener('click', showName);
+  get('file-name').addEventListener('click', () => showName());
   get('save-file').addEventListener('click', save);
-  get('cancel-name').addEventListener('click', () => dialog.close());
   get('cancel-name-secondary').addEventListener('click', () => dialog.close());
   get('name-form').addEventListener('submit', (event) => {
     event.preventDefault();
@@ -273,26 +274,58 @@ export function setupStudyLibrary(editor: EditorBridge) {
       return;
     }
     try {
-      library.save(editor.source(), name.value);
+      if (namingId && namingId !== library.active?.id) library.rename(namingId, name.value);
+      else library.save(editor.source(), name.value);
       failed = false;
       dialog.close();
       renderIdentity();
       renderList();
       editor.statusChanged();
-      inform('Código guardado. As próximas alterações serão salvas automaticamente.');
+      inform(namingId ? 'Código renomeado.' : 'Código salvo.');
     } catch {
-      get('name-error').textContent =
-        'Não foi possível salvar. Seu código continua no editor; exporte uma cópia.';
+      get('name-error').textContent = 'Não foi possível salvar. Exporte uma cópia.';
       get('name-error').hidden = false;
       failed = true;
       editor.statusChanged();
+    }
+  });
+  get('rename-file').addEventListener('click', () => {
+    actions.hidePopover();
+    if (actionFile) showName(actionFile);
+  });
+  get('delete-file').addEventListener('click', () => {
+    actions.hidePopover();
+    if (!actionFile) return;
+    deletingId = actionFile.id;
+    get('delete-title').textContent = `Excluir “${actionFile.name}.ts”?`;
+    get('delete-error').hidden = true;
+    deleteDialog.showModal();
+  });
+  get('cancel-delete').addEventListener('click', () => deleteDialog.close());
+  get('delete-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!deletingId) return;
+    try {
+      const active = deletingId === library.active?.id;
+      library.delete(deletingId);
+      if (active) editor.replace('');
+      failed = false;
+      deleteDialog.close();
+      renderIdentity();
+      renderList();
+      editor.statusChanged();
+      get('new-file').focus();
+      inform('Código excluído.');
+    } catch {
+      get('delete-error').textContent = 'Não foi possível excluir. Tente novamente.';
+      get('delete-error').hidden = false;
     }
   });
   name.addEventListener('input', () => name.setCustomValidity(''));
   document.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
       event.preventDefault();
-      if (!dialog.open) save();
+      if (!dialog.open && !deleteDialog.open) save();
     }
   });
   const download = async (all: boolean) => {
@@ -332,7 +365,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
   });
   renderIdentity();
   renderList();
-  setOpen(!narrow.matches);
   return {
     sync,
     get hasActiveFile() {
@@ -349,16 +381,21 @@ export function setupStudyLibrary(editor: EditorBridge) {
       editor.statusChanged();
     },
     edit(source: string) {
-      if (!library.active) return;
+      if (!library.active && !source.trim()) return;
       try {
-        const id = library.active.id;
-        library.save(source);
-        if (library.active.id !== id)
-          inform('Este estudo mudou em outra aba. Suas alterações foram guardadas em uma cópia.');
+        const id = library.active?.id;
+        const saved = library.save(source);
+        if (id && saved.id !== id)
+          inform('Edições em conflito. Sua versão foi salva em uma cópia.');
         failed = false;
         renderIdentity();
         clearTimeout(listTimer);
-        listTimer = window.setTimeout(renderList, 500);
+        if (!id) {
+          search.value = '';
+          renderList();
+        } else {
+          listTimer = window.setTimeout(renderList, 500);
+        }
       } catch {
         failed = true;
       }

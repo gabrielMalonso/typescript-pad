@@ -5,6 +5,7 @@ export type StudyFile = {
   createdAt: number;
   updatedAt: number;
   revision: string;
+  deletedAt?: number;
   sync?: { owner: string; version: number; revision: string | null };
 };
 export type FileOrder = 'recent' | 'oldest' | 'name';
@@ -30,6 +31,11 @@ function isFile(value: unknown): value is StudyFile {
     typeof value.updatedAt === 'number' &&
     Number.isSafeInteger(value.updatedAt) &&
     Math.abs(value.updatedAt) <= 8.64e15 &&
+    (!('deletedAt' in value) ||
+      (typeof value.deletedAt === 'number' &&
+        Number.isSafeInteger(value.deletedAt) &&
+        value.deletedAt >= 0 &&
+        value.deletedAt <= 8.64e15)) &&
     (!('sync' in value) || isSyncState(value.sync))
   );
 }
@@ -88,7 +94,7 @@ export class StudyLibrary {
       const id = storage().getItem(activeKey);
       if (id) {
         const file = this.read(id);
-        if (file?.source === source) this.active = file;
+        if (file && file.deletedAt === undefined && file.source === source) this.active = file;
       }
     } catch {
       /* Opening the editor must still work if storage is unavailable. */
@@ -104,7 +110,7 @@ export class StudyLibrary {
     return value;
   }
 
-  list(): StudyFile[] {
+  list(includeDeleted = false): StudyFile[] {
     const storage = this.storage();
     const files: StudyFile[] = [];
     this.unreadableFiles = 0;
@@ -113,7 +119,7 @@ export class StudyLibrary {
       if (!key?.startsWith(prefix)) continue;
       try {
         const file = this.read(key.slice(prefix.length));
-        if (file) files.push(file);
+        if (file && (includeDeleted || file.deletedAt === undefined)) files.push(file);
       } catch {
         this.unreadableFiles++;
       }
@@ -136,22 +142,25 @@ export class StudyLibrary {
 
   open(id: string) {
     const file = this.read(id);
-    if (!file) throw new Error('Este arquivo não está mais disponível.');
+    if (!file || file.deletedAt !== undefined)
+      throw new Error('Este arquivo não está mais disponível.');
     this.active = file;
     this.remember();
     return file;
   }
 
-  save(source: string, name = this.active?.name ?? 'Sem título'): StudyFile {
+  save(source: string, name = this.active?.name): StudyFile {
     const previous = this.active;
-    if (previous && previous.source === source && previous.name === fileName(name)) return previous;
+    const normalizedName = name === undefined ? undefined : fileName(name);
+    if (previous && previous.source === source && previous.name === normalizedName) return previous;
     const latest = previous ? this.read(previous.id) : null;
     // Another tab may have edited this study. Keep its version and save ours as a copy.
     const conflict = previous !== null && latest?.revision !== previous.revision;
     const now = Date.now();
+    const id = previous && !conflict ? previous.id : crypto.randomUUID();
     const file: StudyFile = {
-      id: previous && !conflict ? previous.id : crypto.randomUUID(),
-      name: fileName(name) + (conflict ? ' (cópia)' : ''),
+      id,
+      name: (normalizedName ?? `Sem título ${id.slice(0, 8)}`) + (conflict ? ' (cópia)' : ''),
       source,
       createdAt: previous && !conflict ? previous.createdAt : now,
       updatedAt: now,
@@ -173,10 +182,40 @@ export class StudyLibrary {
     return file;
   }
 
+  rename(id: string, name: string) {
+    const file = this.read(id);
+    if (!file || file.deletedAt !== undefined) throw new Error('Código indisponível.');
+    this.write({
+      ...file,
+      name: fileName(name),
+      updatedAt: Date.now(),
+      revision: crypto.randomUUID(),
+    });
+    this.onEdit();
+  }
+
+  /** Keep a deletion revision so offline devices cannot bring the file back. */
+  delete(id: string) {
+    const file = this.read(id);
+    if (!file || file.deletedAt !== undefined) return;
+    const now = Date.now();
+    this.write({
+      ...file,
+      source: '',
+      deletedAt: now,
+      updatedAt: now,
+      revision: crypto.randomUUID(),
+    });
+    this.onEdit();
+  }
+
   /** Store received revisions atomically with their synchronization checkpoint. */
   write(file: StudyFile) {
     this.storage().setItem(prefix + file.id, JSON.stringify(file));
-    if (this.active?.id === file.id) this.active = file;
+    if (this.active?.id === file.id) {
+      if (file.deletedAt !== undefined) this.detach();
+      else this.active = file;
+    }
   }
 
   /** Preserve even unnamed work before replacing the editor's document. */
