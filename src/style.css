@@ -149,17 +149,6 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   color: #ff7b72;
   border-color: #ff7b7240;
 }
-.workspace {
-  min-height: 0;
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 38%);
-  grid-template-rows: minmax(0, 1fr);
-  transition: grid-template-columns 180ms ease-in-out;
-}
-.workspace.output-collapsed {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0%);
-}
 .console-button {
   width: 28px;
   min-width: 28px;
@@ -174,8 +163,7 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   color: #e6edf3;
   background: #21262d;
 }
-.editor-pane,
-.output-pane {
+.editor-pane {
   min-height: 0;
   min-width: 0;
   display: flex;
@@ -217,40 +205,6 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 #editor {
   flex: 1;
   min-height: 0;
-}
-.output-pane {
-  overflow: hidden;
-  box-shadow: inset 1px 0 var(--border);
-  background: #0d1117;
-  visibility: visible;
-  transition: visibility 0s;
-}
-.workspace.output-collapsed .output-pane {
-  visibility: hidden;
-  transition-delay: 180ms;
-}
-@media (prefers-reduced-motion: reduce) {
-  .workspace,
-  .workspace.output-collapsed .output-pane {
-    transition: none;
-  }
-}
-.output-header {
-  gap: 8px;
-  padding: 0 12px;
-}
-.console-title {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #e6edf3;
-}
-.console-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 #clear {
   flex-shrink: 0;
@@ -442,10 +396,6 @@ button.log-row {
   .pane-header {
     padding: 0 12px;
     gap: 8px;
-  }
-  .output-header {
-    padding: 0 8px;
-    gap: 4px;
   }
   .editor-pane > .pane-header {
     padding-right: 8px;

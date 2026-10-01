@@ -7,6 +7,7 @@ type EditorBridge = {
   source: () => string;
   replace: (source: string, focus?: boolean) => void;
   statusChanged: () => void;
+  focus: () => void;
 };
 const date = new Intl.DateTimeFormat('pt-BR', {
   year: 'numeric',
@@ -23,9 +24,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
     if (!node) throw new Error(`Elemento ausente: ${id}`);
     return node as T;
   };
-  const panel = get<HTMLElement>('study-library');
-  const toggle = get<HTMLButtonElement>('toggle-library');
-  const backdrop = get<HTMLButtonElement>('library-backdrop');
   const list = get<HTMLElement>('file-list');
   const search = get<HTMLInputElement>('file-search');
   const order = get<HTMLSelectElement>('file-order');
@@ -41,7 +39,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
   let actionFile: StudyFile | null = null;
   let namingId: string | null = null;
   let deletingId: string | null = null;
-  const narrow = matchMedia('(max-width: 840px)');
   let failed = false;
   let noticeTimer: number | undefined;
   let listTimer: number | undefined;
@@ -144,7 +141,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
         open.append(icon, info);
         open.addEventListener('click', () => {
           if (file.id === library.active?.id) {
-            if (narrow.matches) setOpen(false);
+            editor.focus();
             return;
           }
           try {
@@ -155,7 +152,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
             renderIdentity();
             renderList();
             editor.statusChanged();
-            if (narrow.matches) setOpen(false);
           } catch {
             reportFailure();
           }
@@ -184,35 +180,9 @@ export function setupStudyLibrary(editor: EditorBridge) {
         'Não foi possível acessar os arquivos neste dispositivo. Exporte o código aberto para guardar uma cópia.';
     }
   };
-  const setOpen = (open: boolean) => {
-    if (!open) actions.hidePopover();
-    panel.hidden = !open;
-    backdrop.hidden = !open || !narrow.matches;
-    toggle.setAttribute('aria-expanded', String(open));
-    if (open) renderList();
-    // The folder button stays available while the narrow drawer covers the editor.
-    const overlay = open && narrow.matches;
-    document.querySelector<HTMLElement>('.workspace')!.inert = overlay;
-    document.querySelector<HTMLElement>('.header-actions')!.inert = overlay;
-    document.querySelector<HTMLElement>('.status-bar')!.inert = overlay;
-    get('keyboard-toolbar').inert = overlay;
-    if (overlay) searchToggle.focus();
-    if (!open) toggle.focus();
-  };
-  toggle.addEventListener('click', () => setOpen(Boolean(panel.hidden)));
-  backdrop.addEventListener('click', () => setOpen(false));
-  narrow.addEventListener('change', () => setOpen(!panel.hidden));
-  const handleDrawerKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && !panel.hidden && !actions.matches(':popover-open')) {
-      event.preventDefault();
-      event.stopPropagation();
-      setOpen(false);
-    }
-  };
-  panel.addEventListener('keydown', handleDrawerKey);
-  toggle.addEventListener('keydown', handleDrawerKey);
   const setSearchOpen = (open: boolean) => {
-    searchField.hidden = !open;
+    searchField.inert = !open;
+    searchField.classList.toggle('is-open', open);
     searchToggle.setAttribute('aria-expanded', String(open));
     if (open) search.focus();
     else {
@@ -221,7 +191,7 @@ export function setupStudyLibrary(editor: EditorBridge) {
       searchToggle.focus();
     }
   };
-  searchToggle.addEventListener('click', () => setSearchOpen(Boolean(searchField.hidden)));
+  searchToggle.addEventListener('click', () => setSearchOpen(searchField.inert));
   search.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     event.stopPropagation();
@@ -263,7 +233,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
       renderIdentity();
       renderList();
       editor.statusChanged();
-      if (narrow.matches) setOpen(false);
       if (unnamed) inform(`Rascunho salvo como “${preservedName}”.`);
     } catch {
       reportFailure();
@@ -396,7 +365,6 @@ export function setupStudyLibrary(editor: EditorBridge) {
   });
   renderIdentity();
   renderList();
-  setOpen(!narrow.matches);
   return {
     sync,
     get hasActiveFile() {

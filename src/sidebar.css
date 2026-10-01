@@ -1,0 +1,110 @@
+.workspace {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 38%);
+  grid-template-rows: minmax(0, 1fr);
+  transition: grid-template-columns 180ms ease-in-out;
+}
+.workspace.sidebar-collapsed {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0%);
+}
+.sidebar-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: #0d1117;
+  visibility: visible;
+}
+.sidebar-collapsed .sidebar-pane {
+  visibility: hidden;
+  transition: visibility 0s 180ms;
+}
+.sidebar-header {
+  height: 60px;
+  min-height: 60px;
+  padding: 0 16px;
+  gap: 12px;
+}
+.sidebar-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+.sidebar-tab:hover {
+  color: #e6edf3;
+}
+.sidebar-tab[aria-selected='true'] {
+  color: #e6edf3;
+  border-bottom-color: #79c0ff;
+}
+.sidebar-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+#toggle-sidebar[aria-expanded='true'] {
+  color: #a5d2ff;
+  background: #1b2a3b;
+}
+#sidebar-backdrop {
+  display: none;
+}
+@media (max-width: 840px) {
+  .workspace,
+  .workspace.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidebar-pane {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(380px, calc(100% - 40px));
+    z-index: 40;
+    box-shadow: -16px 0 40px #0006;
+    transition:
+      transform 180ms ease-in-out,
+      visibility 0s;
+  }
+  .sidebar-collapsed .sidebar-pane {
+    transform: translateX(100%);
+    transition:
+      transform 180ms ease-in-out,
+      visibility 0s 180ms;
+  }
+  #sidebar-backdrop:not([hidden]) {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 39;
+    border: 0;
+    background: #0008;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace,
+  .sidebar-pane,
+  .sidebar-collapsed .sidebar-pane {
+    transition: none;
+  }
+}

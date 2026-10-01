@@ -13,7 +13,9 @@ Built with Capacitor 8, CodeMirror 6, and
 - GitHub Dark-based theme and JetBrains Mono font.
 - Icon actions for formatting, copying, and running or stopping code.
 - On-demand Prettier formatting that preserves the cursor and stays out of the way while typing.
-- Collapsible console on the right, with aligned editor and console headers. Open and close controls share the same top-right position; visibility is remembered.
+- One collapsible sidebar on the right, with Console and Salvos tabs. The top-right button
+  toggles it; visibility and the selected tab are remembered. Switching tabs preserves search
+  and console output. On narrow screens, selecting a file reveals the editor again.
 - Type and syntax errors highlighted automatically after a short pause in typing,
   without running the code. Hover or tap an underline to read the explanation and
   TypeScript error code; F8 moves to the next error and Ctrl/Cmd+Shift+M opens the list.
